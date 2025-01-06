@@ -66,9 +66,6 @@
                             <includes>
                                 <include>script/toosla.js</include>
                             </includes>
-                            <!--excludes>
-                                <exclude>**/*</exclude>
-                            </excludes-->
                             <filtering>true</filtering>
                         </resource>
                     </webResources>
