@@ -44,13 +44,6 @@
         </dependency>
     </dependencies>
 
-    <distributionManagement>
-    <repository>
-      <id>toosla</id>
-      <url>scp://${deploy.host}${deploy.path}</url>
-    </repository>
-  </distributionManagement>
-
     <build>
         <plugins>
             <plugin>
@@ -102,28 +95,6 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>wagon-maven-plugin</artifactId>
-                <version>2.0.2</version>
-                <executions>
-                    <execution>
-                        <id>upload-to-server</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>upload</goal>
-                        </goals>
-                        <configuration>
-                            <serverId>toosla</serverId>
-                            <fromDir>${project.build.directory}/${project.build.finalName}/</fromDir>
-                            <toDir>site</toDir>
-                            <includes>**/*</includes>
-                            <excludes>META-INF/*,WEB-INF/*</excludes>
-                            <url>scp://${deploy.host}${deploy.path}</url>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
         <extensions>
             <extension>
@@ -133,4 +104,35 @@
             </extension>
         </extensions>
     </build>
+    <profiles>
+        <profile>
+            <id>toosla-production</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>wagon-maven-plugin</artifactId>
+                        <version>2.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>upload-to-server</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>upload</goal>
+                                </goals>
+                                <configuration>
+                                    <serverId>toosla</serverId>
+                                    <fromDir>${project.build.directory}/${project.build.finalName}/</fromDir>
+                                    <toDir>site</toDir>
+                                    <includes>**/*</includes>
+                                    <excludes>META-INF/*,WEB-INF/*</excludes>
+                                    <url>scp://${deploy.host}${deploy.path}</url>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

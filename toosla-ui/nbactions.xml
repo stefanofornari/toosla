@@ -37,7 +37,7 @@
         <displayName>Deploy Toosla Production</displayName>
         <goals>
             <goal>clean</goal>
-            <goal>deploy</goal>
+            <goal>install</goal>
         </goals>
         <properties>
             <skipTests>true</skipTests>
