@@ -20,7 +20,12 @@
  */
 
 const toosla = {
-    version: "${project.version}"
+    version: "${project.version}",
+
+    setup: function() {
+        $("#version").text(toosla.version);
+        console.log("Toosla v" + toosla.version);
+    }
 };
 
-$("#version").text(toosla.version);
+toosla.setup();

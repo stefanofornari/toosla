@@ -33,8 +33,23 @@ public class MainPageTest extends BugFreeWeb {
     @Test
     public void version_displayed_in_main_page() {
         loadPage("src/main/webapp/index.html");
-        then((boolean)exec("$('#toosla').is(':visible')")).isTrue();
-        then(exec("$('#toosla #version').text()")).isEqualTo("${project.version}");
+        then(visible("#toosla")).isTrue();
+        then(text("#toosla #version")).isEqualTo("${project.version}");
+    }
+
+    @Test
+    public void console_text_component() {
+        loadPage("src/main/webapp/index.html");
+        then(visible("#console")).isTrue();
+
+        exec("console.log('info1', 'info2')");
+        then(text("#console #content")).endsWith("(I) info1 info2");
+        exec("console.error('err1', 'err2')");
+        then(text("#console #content")).endsWith("(E) err1 err2");
+        exec("console.warn('warn1', 'warn2')");
+        then(text("#console #content")).endsWith("(W) warn1 warn2");
+        exec("console.debug('dbg1', 'dbg2')");
+        then(text("#console #content")).endsWith("(D) dbg1 dbg2");
     }
 
 }

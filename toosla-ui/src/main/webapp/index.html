@@ -5,6 +5,8 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <link rel="stylesheet" href="metroui/5.0.13/metro.css">
+        <link rel="stylesheet" href="metroui/5.0.13/icons.css">
+        <link rel="stylesheet" href="modules/console/css/console.css">
         <link rel="stylesheet" href="modules/clock/css/clock.css">
         <style>
             .dark-side {
@@ -15,8 +17,6 @@
                 --link-color-hover: #0056B3FF;
             }
         </style>
-
-        <script>console.log('hello'); console.log($('.container'));</script>
     </head>
 
     <body>
@@ -57,8 +57,10 @@
             </div>
             <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
         </div>
+        <div id="console"><div id="content"></div></div>
         <script src="metroui/5.0.13/metro.js"></script>
         <script src="script/toosla.js"></script>
+        <script src="modules/console/script/console.js"></script>
         <script src="modules/clock/script/clock.js"></script>
     </body>
 </html>
