@@ -42,7 +42,12 @@ var toosla = {  // back to const ?
                 $("html").removeClass("dark-side");
             }
         });
+    },
+
+    checkFeatures: function() {
+        console.info("Browser languages:", navigator.languages);
     }
 };
 
 toosla.setup();
+toosla.checkFeatures();

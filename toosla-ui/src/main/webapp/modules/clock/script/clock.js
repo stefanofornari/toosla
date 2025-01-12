@@ -23,18 +23,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const clocks = document.querySelectorAll(".clock");
   const currentDates = document.querySelectorAll(".current-date");
-  const dateFormat = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+  const dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' });
+  const timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium' });
 
   const updateTime = () => {
     const today = new Date();
-    const hours = padNumber(today.getHours());
-    const minutes = padNumber(today.getMinutes());
-    const seconds = padNumber(today.getSeconds());
-    const timeString = `${hours}:${minutes}:${seconds}`;
+    const timeString = timeFormat.format(today);
     const time = timeString.split("").filter((v) => v !== ":");
 
+    const todayDate = dateFormat.format(today);
     currentDates.forEach((currentDate) => {
-        currentDate.innerHTML = today.toLocaleDateString(navigator.language, dateFormat);
+        currentDate.innerHTML = todayDate;
+        today.toLocaleString()
     });
 
     clocks.forEach((clock) => {
