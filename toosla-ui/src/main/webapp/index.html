@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark-side">
+<html lang="en">
     <head>
         <title>Welcome to toosla.me!</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -8,15 +8,6 @@
         <link rel="stylesheet" href="metroui/5.0.13/icons.css">
         <link rel="stylesheet" href="modules/console/css/console.css">
         <link rel="stylesheet" href="modules/clock/css/clock.css">
-        <style>
-            .dark-side {
-                --body-background: #1e1f22;
-                --body-color: #dbdfe7;
-                --border-color: #4a4d51;
-                --link-color: #5a87cb;
-                --link-color-hover: #0056B3FF;
-            }
-        </style>
     </head>
 
     <body>
@@ -24,9 +15,9 @@
             <div class="grid" style="height: 500px">
                 <div class="row">
                     <div class="cell-8 offset-2">
-                        <div class="card">
+                        <div id="clock" class="card">
                             <div class="card-header">
-                                <span class="h3">Tue, January 24 2025</span>
+                                <span class="h3 current-date">Tue, January 24 2025</span>
                             </div>
 
                             <div class="card-content d-flex flex-justify-center">
@@ -57,7 +48,7 @@
             </div>
             <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
         </div>
-        <div id="console"><div id="content"></div></div>
+        <div id="console"><div id="content" class="text-small"></div></div>
         <script src="metroui/5.0.13/metro.js"></script>
         <script src="script/toosla.js"></script>
         <script src="modules/console/script/console.js"></script>

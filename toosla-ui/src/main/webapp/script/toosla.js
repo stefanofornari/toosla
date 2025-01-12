@@ -19,12 +19,29 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-const toosla = {
+var toosla = {  // back to const ?
     version: "${project.version}",
+    build: "${buildTimestamp}",
 
     setup: function() {
         $("#version").text(toosla.version);
-        console.log("Toosla v" + toosla.version);
+        console.info(
+            `%c Toosla %cv${this.version} %c${this.build}`,
+            "color: white; font-weight: bold; background: blue",
+            "color: white; background: darkgreen",
+            "color: white; background: darkgreen|color: white; background: #0080fe;"
+        );
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches){
+                // dark
+                console.info("Switching Toosla to dark mode");
+                $("html").addClass("dark-side");
+            } else {
+                // light
+                 console.info("Switching Toosla to light mode");
+                $("html").removeClass("dark-side");
+            }
+        });
     }
 };
 

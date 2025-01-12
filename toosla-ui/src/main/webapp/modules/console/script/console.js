@@ -19,53 +19,34 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-const tooslaConsole = {
-    log: function(severity, arguments) {
-        var e = $("#console #content");
-        e.append("<br/>(" + severity + ") " + Array.from(arguments).join(" "));
-    },
+const tooslaConsole = (function(srdConsole){
+    return {
+        out: function(severity, arguments) {
+            var e = $("#console #content");
+            e.append("<br/>(" + severity + ") " + Array.from(arguments).join(" "));
+        },
+        log: function(...text){
+            srdConsole.log(...text);
+            this.out("L", text)
+        },
+        info: function (...text) {
+            srdConsole.info(...text);
+            this.out("I", text)
+        },
+        warn: function (...text) {
+            srdConsole.warn(...text);
+            this.out("W", text)
+        },
+        error: function (...text) {
+            srdConsole.error(...text);
+            this.out("E", text)
+        },
+        debug: function (...text) {
+            srdConsole.debug(...text);
+            this.out("D", text)
+        }
+    };
+}(window.console));
 
-    setup: function() {
-        const self = this;
 
-        //
-        // logs
-        //
-        console.stdlog = console.log.bind(console);
-        console.log = function () {
-            self.log("I", arguments);
-            console.stdlog.apply(console, arguments);
-        };
-
-        //
-        // errors
-        //
-        console.stderr = console.error.bind(console);
-        console.error = function () {
-            self.log("E", arguments);
-            console.stderr.apply(console, arguments);
-        };
-
-        //
-        // warnings
-        //
-        console.stdwarn = console.warn.bind(console);
-        console.warns = [];
-        console.warn = function () {
-            self.log("W", arguments);
-            console.stdwarn.apply(console, arguments);
-        };
-
-        //
-        // debug
-        //
-        console.stddbg = console.debug.bind(console);
-        console.debugs = [];
-        console.debug = function () {
-            self.log("D", arguments);
-            console.stddbg.apply(console, arguments);
-        };
-    }
-};
-
-tooslaConsole.setup();
+window.console = tooslaConsole;

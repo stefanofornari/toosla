@@ -22,6 +22,8 @@ window.addEventListener("DOMContentLoaded", () => {
   ];
 
   const clocks = document.querySelectorAll(".clock");
+  const currentDates = document.querySelectorAll(".current-date");
+  const dateFormat = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
 
   const updateTime = () => {
     const today = new Date();
@@ -30,6 +32,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const seconds = padNumber(today.getSeconds());
     const timeString = `${hours}:${minutes}:${seconds}`;
     const time = timeString.split("").filter((v) => v !== ":");
+
+    currentDates.forEach((currentDate) => {
+        currentDate.innerHTML = today.toLocaleDateString(navigator.language, dateFormat);
+    });
 
     clocks.forEach((clock) => {
       const divs = clock.querySelectorAll("div");

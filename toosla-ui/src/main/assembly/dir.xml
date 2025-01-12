@@ -16,9 +16,6 @@
             <includes>
                 <include>script/toosla.js</include>
             </includes>
-            <excludes>
-                <exclude>**/*</exclude>
-            </excludes>
         </fileSet>
         <fileSet>
             <outputDirectory></outputDirectory>
