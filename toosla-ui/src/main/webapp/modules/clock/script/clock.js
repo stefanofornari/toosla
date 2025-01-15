@@ -24,7 +24,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const clocks = document.querySelectorAll(".clock");
   const currentDates = document.querySelectorAll(".current-date");
   const dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' });
-  const timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium' });
+  const timeFormat = new Intl.DateTimeFormat('it-IT', { timeStyle: 'medium' });
 
   const updateTime = () => {
     const today = new Date();
@@ -38,18 +38,16 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     clocks.forEach((clock) => {
-      const divs = clock.querySelectorAll("div");
-      time.forEach((t, i) => {
-        if (t !== ":") {
-          for (let x = 0; x < divs.length; x++) {
-            const cell = divs[x].querySelector(`span:nth-child(${i + 1})`);
-            cell.style.boxShadow = nb[parseInt(t)];
-          }
-        }
-      });
+        const divs = clock.querySelectorAll("div");
+        time.forEach((t, i) => {
+            if (t !== ":") {
+                for (let x = 0; x < divs.length; x++) {
+                    const cell = divs[x].querySelector(`span:nth-child(${i + 1})`);
+                    cell.style.boxShadow = nb[parseInt(t)];
+                }
+            }
+        });
     });
-
-    requestAnimationFrame(updateTime);
   };
 
   const padNumber = (num) => {
@@ -64,5 +62,5 @@ window.addEventListener("DOMContentLoaded", () => {
     document.querySelector("output").value = size;
   };
 
-  updateTime();
+  setInterval(updateTime, 500);
 });
