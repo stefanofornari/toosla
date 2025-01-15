@@ -42,23 +42,36 @@ public class MainPageTest extends BugFreeWeb {
         then(visible("#console")).isTrue();
 
         exec("console.log('log1', 'log2')");
-        then(text("#console #content")).endsWith("(L) log1 log2");
+        then(text("#console .content")).startsWith("(L) log1 log2");
         exec("console.info('info1', 'info2')");
-        then(text("#console #content")).endsWith("(I) info1 info2");
+        then(text("#console .content")).startsWith("(I) info1 info2");
         exec("console.error('err1', 'err2')");
-        then(text("#console #content")).endsWith("(E) err1 err2");
+        then(text("#console .content")).startsWith("(E) err1 err2");
         exec("console.warn('warn1', 'warn2')");
-        then(text("#console #content")).endsWith("(W) warn1 warn2");
+        then(text("#console .content")).startsWith("(W) warn1 warn2");
         exec("console.debug('dbg1', 'dbg2')");
-        then(text("#console #content")).endsWith("(D) dbg1 dbg2");
+        then(text("#console .content")).startsWith("(D) dbg1 dbg2");
     }
 
     @Test
     public void light_and_dark_mode() throws Exception {
+        //
+        // Initial media
+        //
+        initialMedia("{'prefers-color-scheme': 'light'}");
         loadPage("src/main/webapp/index.html");
-        darkMode(true);
+        then(classes("html")).doesNotContain("dark-side");
+
+        initialMedia("{'prefers-color-scheme': 'dark'}");
+        loadPage("src/main/webapp/index.html");
         then(classes("html")).contains("dark-side");
+
+        //
+        // Switch media
+        //
         darkMode(false);
         then(classes("html")).doesNotContain("dark-side");
+        darkMode(true);
+        then(classes("html")).contains("dark-side");
     }
 }

@@ -24,6 +24,8 @@ var toosla = {  // back to const ?
     build: "${buildTimestamp}",
 
     setup: function() {
+        let self = this;
+
         $("#version").text(toosla.version);
         console.info(
             `%c Toosla %cv${this.version} %c${this.build}`,
@@ -31,23 +33,32 @@ var toosla = {  // back to const ?
             "color: white; background: darkgreen",
             "color: white; background: darkgreen|color: white; background: #0080fe;"
         );
+
+        self.darkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-            if (event.matches){
-                // dark
-                console.info("Switching Toosla to dark mode");
-                $("html").addClass("dark-side");
-            } else {
-                // light
-                 console.info("Switching Toosla to light mode");
-                $("html").removeClass("dark-side");
-            }
+            self.darkMode(event.matches);
         });
+    },
+
+    darkMode: function(dark) {
+        console.log("dark: " + dark);
+        if (dark){
+            // switch to dark
+            console.info("Switching Toosla to dark mode");
+            $("html").addClass("dark-side");
+        } else {
+            // light
+             console.info("Switching Toosla to light mode");
+            $("html").removeClass("dark-side");
+        }
     },
 
     checkFeatures: function() {
         console.info("Browser languages:", navigator.languages);
+        console.info("Full screen support:", document.fullscreenEnabled);
     }
 };
 
 toosla.setup();
-toosla.checkFeatures();
+const { TaskTimer } = tasktimer;
+
