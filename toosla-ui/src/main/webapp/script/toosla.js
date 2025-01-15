@@ -41,7 +41,6 @@ var toosla = {  // back to const ?
     },
 
     darkMode: function(dark) {
-        console.log("dark: " + dark);
         if (dark){
             // switch to dark
             console.info("Switching Toosla to dark mode");
