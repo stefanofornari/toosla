@@ -45,13 +45,40 @@
                         </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="cell-1">
+                        <button class="button" onclick="document.getElementsByTagName('body')[0].requestFullscreen();">
+                            <span class="mif-enlarge icon"></span>
+                        </button>
+                    </div>
+                    <div class="cell-1">
+                        <button class="button" onclick="getPosition();">
+                            <span class="mif-location icon"></span>
+                        </button>
+                    </div>
+                    <div class="cell-1">
+                        <button class="button" onclick="toosla.checkFeatures();">
+                            <span class="mif-comment icon"></span>
+                        </button>
+                    </div>
+
+                </div>
             </div>
             <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
         </div>
-        <div id="console"><div id="content" class="text-small"></div></div>
+        <div id="console"><div class="content text-small"></div><p></p></div>
         <script src="metroui/5.0.13/metro.js"></script>
+        <script src="tasktimer/3.0.0/tasktimer.min.js"></script>
         <script src="script/toosla.js"></script>
         <script src="modules/console/script/console.js"></script>
         <script src="modules/clock/script/clock.js"></script>
+        <script>
+            function getPosition() {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    console.info(`lat: ${position.coords.latitude}, long: ${position.coords.longitude}, altitude: ${position.coords.altitude}, speed: ${position.coords.speed}`);
+                    console.info(JSON.stringify(position));
+                });
+            }
+        </script>
     </body>
 </html>
