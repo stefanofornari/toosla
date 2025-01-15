@@ -24,7 +24,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const clocks = document.querySelectorAll(".clock");
   const currentDates = document.querySelectorAll(".current-date");
   const dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' });
-  const timeFormat = new Intl.DateTimeFormat('it-IT', { timeStyle: 'medium' });
+  const timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium', timeZone: 'Europe/Rome' });
 
   const updateTime = () => {
     const today = new Date();
