@@ -46,7 +46,6 @@ class Clock {
                 }
             });
         });
-
     }
 
     setup() {

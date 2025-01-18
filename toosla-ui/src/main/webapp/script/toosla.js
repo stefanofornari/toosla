@@ -23,7 +23,10 @@ var toosla = {  // back to const ?
     version: "${project.version}",
     build: "${buildTimestamp}",
 
+    modules: [],
+
     setup: function() {
+        tooslats = new Date();
         let self = this;
 
         $("#version").text(toosla.version);
@@ -55,9 +58,13 @@ var toosla = {  // back to const ?
     checkFeatures: function() {
         console.info("Browser languages:", navigator.languages);
         console.info("Full screen support:", document.fullscreenEnabled);
+        console.info("dark mode: ", window.matchMedia);
     }
 };
 
-toosla.setup();
 const { TaskTimer } = tasktimer;
+
+toosla.setup();
+
+
 

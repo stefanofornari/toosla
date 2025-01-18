@@ -32,6 +32,7 @@ public class ClockTest extends BugFreeWeb {
     @Test
     public void clock_diplayed_on_page() {
         loadPage("src/main/webapp/index.html");
+        then(exec("toosla.modules['clock']")).isNotEqualTo("undefined");
         then(visible("#clock")).isTrue();
     }
 
@@ -40,10 +41,11 @@ public class ClockTest extends BugFreeWeb {
         loadPage("src/main/webapp/index.html");
 
         exec("DateStub.fixedDate = new Date(1736676010098);");
-        Thread.sleep(25);
+        Thread.sleep(750); // clock updates every 500ms
+        System.out.println(exec("__XTEST__.log"));
         then(text(".current-date")).isEqualTo("Sunday, 12 January 2025");
         exec("DateStub.fixedDate = new Date(1718961726000);");
-        Thread.sleep(25);
+        Thread.sleep(750);
         then(text(".current-date")).isEqualTo("Friday, 21 June 2024");
     }
 }

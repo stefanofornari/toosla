@@ -40,32 +40,31 @@
                                 </div>
                             </div>
                             <div class="card-footer">
-                                Card Footer
+                                <span>
+                                    <button class="button" onclick="Metro.charms.toggle('#clock .settings');">
+                                        <span class="mif-cog mif-2x icon"></span>
+                                    </button>
+                                    <button class="button" onclick="document.getElementById('clock').requestFullscreen();">
+                                        <span class="mif-enlarge mif-2x icon"></span>
+                                    </button>
+                                </span>
                             </div>
+                            <div class="settings" data-role="charms"
+                                data-on-open="console.log('charms was opened')"
+                                data-on-close="console.log('charms was closed')"
+                            >Hello</div>
                         </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="cell-1">
-                        <button class="button" onclick="document.getElementsByTagName('body')[0].requestFullscreen();">
-                            <span class="mif-enlarge icon"></span>
-                        </button>
-                    </div>
-                    <div class="cell-1">
-                        <button class="button" onclick="getPosition();">
-                            <span class="mif-location icon"></span>
-                        </button>
-                    </div>
-                    <div class="cell-1">
-                        <button class="button" onclick="toosla.checkFeatures();">
-                            <span class="mif-comment icon"></span>
-                        </button>
-                    </div>
-
                 </div>
             </div>
             <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
         </div>
+        <button class="button" onclick="getPosition();">
+            <span class="mif-location icon"></span>
+        </button>
+        <button class="button" onclick="toosla.checkFeatures();">
+            <span class="mif-comment icon"></span>
+        </button>
         <div id="console"><div class="content text-small"></div><p></p></div>
         <script src="metroui/5.0.13/metro.js"></script>
         <script src="tasktimer/3.0.0/tasktimer.min.js"></script>
