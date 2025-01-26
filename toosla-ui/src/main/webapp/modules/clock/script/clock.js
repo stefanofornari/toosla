@@ -1,7 +1,14 @@
+const CONFIG_CLOCK_TIMEZONE = "toosla.clock.timezone";
+
 class Clock {
 
+    currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;  // default timzone for time
+
     dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' });
-    timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium', timeZone: 'Europe/Rome' });
+    timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium', timeZone: 'Europe/Rome' });  // TODO: set a better default
+
+    #taskID = null;
+
 
     clocks() {
         return document.querySelectorAll(".clock");
@@ -9,6 +16,11 @@ class Clock {
 
     currentDates(){
         return document.querySelectorAll(".current-date");
+    }
+
+    timeZone(tz) {
+        this.timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium', timeZone: tz });
+        this.dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeZone: tz  })
     }
 
     updateTime() {
@@ -51,10 +63,41 @@ class Clock {
     setup() {
         const self = this;
 
+        //
+        // initialize available timezones and add them to the timezone select
+        // in settings
+        //
+
+        let options = {};
+        for (const tz of Intl.supportedValuesOf('timeZone')) {
+            options[tz] = tz;
+        };
+
+        const timeZoneSelect = Metro.getPlugin("#clock .settings select.timezones", 'select');
+        timeZoneSelect.data(options);
+
+        $("#clock .settings select.timezones").on("itemselect", function() {
+            const tz = $(this).val();
+
+            console.info("Setting timezone to", tz);
+
+            self.timeZone(tz);
+        });
+
         self.updateTime();
-        setInterval(() => self.updateTime(), 500);
+        if (self.#taskID !== null) {
+            clearInterval(self.#taskID);
+        }
+        self.#taskID = setInterval(() => self.updateTime(), 500);
+    }
+
+    save() {
+        const TZ = $('#clock .settings select.timezones').data('select').val();
+        toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, `{ timezone: "${TZ}" }`);
     }
 }
 
-new Clock().setup();
-toosla.modules['clock'] = new Clock();
+const CLOCK = new Clock();
+toosla.modules['clock'] = CLOCK;
+$(document).ready(() => CLOCK.setup());
+
