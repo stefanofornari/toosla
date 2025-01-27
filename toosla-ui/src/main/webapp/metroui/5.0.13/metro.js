@@ -5,7 +5,7 @@
  ██╔████╔██║█████╗     ██║   ██████╔╝██║   ██║    ██║   ██║██║
  ██║╚██╔╝██║██╔══╝     ██║   ██╔══██╗██║   ██║    ██║   ██║██║
  ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝    ╚██████╔╝██║
- ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝      ╚═════╝ ╚═╝                                                             
+ ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝      ╚═════╝ ╚═╝
 
  * Metro UI v5.0.13 Components Library  (https://metroui.org.ua)
  * Copyright 2012-2024 by Serhii Pimenov
@@ -71,7 +71,7 @@
 `,f=0,u,h,g=function(b,v){return v?c+=b.match(m)?b+`
 `:"r.push("+b+`);
 `:c+=b!==""?'r.push("'+b.replace(/"/g,'\\"')+`");
-`:"",g};for(a.isValue(l)&&(r.hasProp(l,"beginToken")&&(d=d.replace("<%",l.beginToken)),r.hasProp(l,"endToken")&&(d=d.replace("%>",l.endToken))),p=new RegExp(d,"g"),h=p.exec(e);h;)g(e.slice(f,h.index))(h[1],!0),f=h.index+h[0].length,h=p.exec(e);g(e.substr(f,e.length-f)),c=(c+'return r.join(""); }').replace(/[\r\t\n]/g," ");try{u=new Function("obj",c).apply(o,[o])}catch(b){console.error("'"+b.message+"'",` in 
+`:"",g};for(a.isValue(l)&&(r.hasProp(l,"beginToken")&&(d=d.replace("<%",l.beginToken)),r.hasProp(l,"endToken")&&(d=d.replace("%>",l.endToken))),p=new RegExp(d,"g"),h=p.exec(e);h;)g(e.slice(f,h.index))(h[1],!0),f=h.index+h[0].length,h=p.exec(e);g(e.substr(f,e.length-f)),c=(c+'return r.join(""); }').replace(/[\r\t\n]/g," ");try{u=new Function("obj",c).apply(o,[o])}catch(b){console.error("'"+b.message+"'",` in
 
 Code:
 `,c,`

@@ -21,6 +21,8 @@
 package ste.toosla.ui;
 
 import static org.assertj.core.api.BDDAssertions.then;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import ste.xtest.web.BugFreeWeb;
 
@@ -28,6 +30,18 @@ import ste.xtest.web.BugFreeWeb;
  *
  */
 public class MainPageTest extends BugFreeWeb {
+
+    @Before
+    public void beforeEach() {
+        errors.clear();
+    }
+
+    @After
+    public void afterEach() {
+        if (!errors.isEmpty()) {
+            System.out.println("ERRORS\n----------\n" + errors + "\n----------");
+        }
+    }
 
     @Test
     public void version_displayed_in_main_page() {
@@ -42,15 +56,29 @@ public class MainPageTest extends BugFreeWeb {
         then(visible("#console")).isTrue();
 
         exec("console.log('log1', 'log2')");
-        then(text("#console .content")).startsWith("(L) log1 log2");
+        String[] logs = text("#console .content").split(" ");
+        then(logs[0]).matches("[0-9]+"); then(logs[1]).isEqualTo("(L)");
+        then(logs[2]).isEqualTo("log1"); then(logs[3]).isEqualTo("log2");
+
         exec("console.info('info1', 'info2')");
-        then(text("#console .content")).startsWith("(I) info1 info2");
+        logs = text("#console .content").split(" ");
+        then(logs[0]).matches("[0-9]+"); then(logs[1]).isEqualTo("(I)");
+        then(logs[2]).isEqualTo("info1"); then(logs[3]).isEqualTo("info2");
+
         exec("console.error('err1', 'err2')");
-        then(text("#console .content")).startsWith("(E) err1 err2");
+        logs = text("#console .content").split(" ");
+        then(logs[0]).matches("[0-9]+"); then(logs[1]).isEqualTo("(E)");
+        then(logs[2]).isEqualTo("err1"); then(logs[3]).isEqualTo("err2");
+
         exec("console.warn('warn1', 'warn2')");
-        then(text("#console .content")).startsWith("(W) warn1 warn2");
+        logs = text("#console .content").split(" ");
+        then(logs[0]).matches("[0-9]+"); then(logs[1]).isEqualTo("(W)");
+        then(logs[2]).isEqualTo("warn1"); then(logs[3]).isEqualTo("warn2");
+
         exec("console.debug('dbg1', 'dbg2')");
-        then(text("#console .content")).startsWith("(D) dbg1 dbg2");
+        logs = text("#console .content").split(" ");
+        then(logs[0]).matches("[0-9]+"); then(logs[1]).isEqualTo("(D)");
+        then(logs[2]).isEqualTo("dbg1"); then(logs[3]).isEqualTo("dbg2");
     }
 
     @Test

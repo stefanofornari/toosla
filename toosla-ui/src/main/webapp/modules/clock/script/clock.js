@@ -19,6 +19,8 @@ class Clock {
     }
 
     timeZone(tz) {
+        console.info("Setting timezone to", tz)
+        this.currentTimezone = tz;
         this.timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium', timeZone: tz });
         this.dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeZone: tz  })
     }
@@ -44,7 +46,6 @@ class Clock {
         const todayDate = this.dateFormat.format(today);
         this.currentDates().forEach((currentDate) => {
             currentDate.innerHTML = todayDate;
-            today.toLocaleString();
         });
 
         this.clocks().forEach((clock) => {
@@ -68,21 +69,18 @@ class Clock {
         // in settings
         //
 
-        let options = {};
-        for (const tz of Intl.supportedValuesOf('timeZone')) {
-            options[tz] = tz;
-        };
-
-        const timeZoneSelect = Metro.getPlugin("#clock .settings select.timezones", 'select');
-        timeZoneSelect.data(options);
-
         $("#clock .settings select.timezones").on("itemselect", function() {
-            const tz = $(this).val();
-
-            console.info("Setting timezone to", tz);
-
-            self.timeZone(tz);
+            self.timeZone($(this).val());
         });
+
+        try {
+            const TZ = toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE);
+            if (TZ) {
+                this.timeZone(TZ);
+            }
+        } catch (e) {
+            console.error("Error reading TZ from local storage, using default");
+        }
 
         self.updateTime();
         if (self.#taskID !== null) {
@@ -91,13 +89,36 @@ class Clock {
         self.#taskID = setInterval(() => self.updateTime(), 500);
     }
 
-    save() {
-        const TZ = $('#clock .settings select.timezones').data('select').val();
-        toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, `{ timezone: "${TZ}" }`);
+    settings(event) {
+        console.debug("Clock settings action:", event);
+        const select = $("#clock .settings select.timezones");
+        if (event === 'open') {
+            $('#clock .settings').removeAttr('hidden');
+
+            if (Metro.getPlugin(select, "select")) {
+                select.metro('select', 'destroy');
+            }
+            for (const tz of Intl.supportedValuesOf('timeZone')) {
+                select.append($("<option>").attr("value", tz).html(tz))
+            }
+            Metro.makePlugin(select, "select");
+        } else if (event === 'close') {
+            $('#clock .settings').attr('hidden', 'true');
+        } else if (event === 'save') {
+            const TZ = Metro.getPlugin(select, "select").val();
+            this.timeZone(TZ);
+            toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, TZ);
+        }
     }
 }
 
 const CLOCK = new Clock();
 toosla.modules['clock'] = CLOCK;
-$(document).ready(() => CLOCK.setup());
+$(document).ready(() => {
+    try {
+        CLOCK.setup();
+    } catch (e) {
+        console.error(e);
+    }
+});
 

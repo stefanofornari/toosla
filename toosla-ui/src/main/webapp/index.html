@@ -40,19 +40,23 @@
                                 </div>
                             </div>
                             <div class="card-footer">
-                                <span>
-                                    <button class="button" onclick="Metro.charms.toggle('#clock .settings');">
+                                <div>
+                                    <!--button class="button btn-settings" onclick="Metro.charms.toggle('#clock .settings');"-->
+                                    <button class="button btn-settings" onclick="toosla.modules.clock.settings('open')">
                                         <span class="mif-cog mif-2x icon"></span>
                                     </button>
                                     <button class="button" onclick="document.getElementById('clock').requestFullscreen();">
                                         <span class="mif-enlarge mif-2x icon"></span>
                                     </button>
-                                </span>
+                                </div>
                             </div>
-                            <div class="settings" data-role="charms"
+                            <div class="settings" hidden
                                 data-on-open="console.log('charms was opened')"
                                 data-on-close="console.log('charms was closed')"
-                            >Hello</div>
+                            >
+                                <button class="button btn-cancel" onclick="toosla.modules['clock'].settings('close');"><span class="mif-cross-light icon"></span></button>
+                                <button class="button btn-done" onclick="toosla.modules['clock'].settings('save'); toosla.modules['clock'].settings('close')"><span class="mif-done icon"></span></button>
+                                <select class="timezones"></select>
                         </div>
                     </div>
                 </div>

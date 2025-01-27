@@ -23,6 +23,8 @@ var toosla = {  // back to const ?
     version: "${project.version}",
     build: "${buildTimestamp}",
 
+    storage: null,
+
     modules: [],
 
     setup: function() {
@@ -41,6 +43,15 @@ var toosla = {  // back to const ?
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             self.darkMode(event.matches);
         });
+
+        //
+        // wen run into the testing framework the local storage is not supported
+        //
+        try {
+            self.storage = window.localStorage;
+        } catch (error) {
+            console.info("Local storage not supported");
+        }
     },
 
     darkMode: function(dark) {
@@ -58,13 +69,11 @@ var toosla = {  // back to const ?
     checkFeatures: function() {
         console.info("Browser languages:", navigator.languages);
         console.info("Full screen support:", document.fullscreenEnabled);
-        console.info("dark mode: ", window.matchMedia);
+        console.info("Dark mode: ", window.matchMedia);
+        console.info("Local Storage Access: ", window.localStorage.length === 0);
     }
 };
 
 const { TaskTimer } = tasktimer;
 
 toosla.setup();
-
-
-

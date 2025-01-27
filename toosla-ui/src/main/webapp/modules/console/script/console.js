@@ -22,9 +22,11 @@
 const tooslaConsole = (function(srdConsole){
     return {
         out: function(severity, arguments) {
+            const NOW = new Date();
+
             let oldText = document.getElementById("console").getElementsByClassName('content')[0].innerHTML;
             document.getElementById("console").getElementsByClassName('content')[0].innerHTML =
-                ("(" + severity + ") " + Array.from(arguments).join(" ") + "<br/>") + oldText;
+                (NOW.getTime() + " (" + severity + ") " + Array.from(arguments).join(" ") + "<br/> ") + oldText;
         },
         log: function(...text){
             srdConsole.log(...text);
