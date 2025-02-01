@@ -1,0 +1,10 @@
+Toosla
+------
+- modules
+- settings framework
+
+Clock
+-----
+- add ':' between minutes and seconds
+- more user friendly timezones
+- cancel on settings to revert to previous tz
