@@ -91,6 +91,7 @@ class Clock {
 
     settings(event) {
         console.debug("Clock settings action:", event);
+
         const select = $("#clock .settings select.timezones");
         if (event === 'open') {
             $('#clock .settings').removeAttr('hidden');
@@ -104,6 +105,15 @@ class Clock {
             Metro.makePlugin(select, "select");
         } else if (event === 'close') {
             $('#clock .settings').attr('hidden', 'true');
+        } else if (event === 'load') {
+            try {
+                const TZ = toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE);
+                if (TZ) {
+                    this.timeZone(TZ);
+                }
+            } catch (e) {
+                console.error("Error reading TZ from local storage, using default");
+            }
         } else if (event === 'save') {
             const TZ = Metro.getPlugin(select, "select").val();
             this.timeZone(TZ);
