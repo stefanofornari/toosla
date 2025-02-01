@@ -41,6 +41,7 @@ public class ClockTest extends BugFreeWeb {
         if (!errors.isEmpty()) {
             System.out.println("ERRORS\n----------\n" + errors + "\n----------");
         }
+        printConsole();
     }
 
     @Test
@@ -96,12 +97,45 @@ public class ClockTest extends BugFreeWeb {
         exec("DateStub.fixedDate = new Date(1735686060000);"); // 20250101 000101 UTC
         click("#clock button.btn-settings");  // open settings panel
         then(visible("#clock .settings")).isTrue();
-        exec("$('#clock .settings select.timezones').data('select').val('America/New_York');"); // pick timezone
+        exec("""
+            const S = $('#clock .settings select.timezones');
+            S.data('select').val('America/New_York');
+            S.trigger("itemselect");
+        """); // pick timezone
         click("#clock .settings button.btn-done"); // click done button
         then(visible("#clock .settings")).isFalse();
         Thread.sleep(750); // clock updates every 500ms
         then(exec("toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE)"))
                 .isEqualTo("America/New_York");
         then(text(".current-date")).isEqualTo("Tuesday, 31 December 2024");
+
+        printConsole();
+    }
+
+    @Test
+    public void change_timezone_settings_does_not_save_if_cancel_is_pressed() throws Exception {
+        loadPage("src/main/webapp/index.html");
+
+        exec("""
+            DateStub.fixedDate = new Date(1735686060000); // 20250101 000101 UTC
+            toosla.storage = new StorageStub();
+            toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, "Europe/Rome");
+            toosla.modules.clock.setup();
+        """); // set stubs and setup the module again
+
+        click("#clock button.btn-settings");  // open settings panel
+        then(visible("#clock .settings")).isTrue();
+        exec("""
+            const S = $('#clock .settings select.timezones');
+            S.data('select').val('America/New_York');
+            S.trigger("itemselect");
+        """); // pick timezone
+        Thread.sleep(750); // clock updates every 500ms
+        then(text(".current-date")).isEqualTo("Tuesday, 31 December 2024");
+        click("#clock .settings button.btn-cancel"); // click done button
+        then(visible("#clock .settings")).isFalse();
+        then(exec("toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE)"))
+            .isEqualTo("Europe/Rome");
+        then(text(".current-date")).isEqualTo("Wednesday, 1 January 2025");
     }
 }
