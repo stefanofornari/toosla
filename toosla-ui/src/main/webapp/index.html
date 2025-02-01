@@ -54,11 +54,16 @@
                                 data-on-open="console.log('charms was opened')"
                                 data-on-close="console.log('charms was closed')"
                             >
-                                <button class="button btn-cancel" onclick="toosla.modules['clock'].settings('close');"><span class="mif-cross-light icon"></span></button>
+                                <button class="button btn-cancel" onclick="toosla.modules['clock'].settings('load'); toosla.modules['clock'].settings('close');"><span class="mif-cross-light icon"></span></button>
                                 <button class="button btn-done" onclick="toosla.modules['clock'].settings('save'); toosla.modules['clock'].settings('close')"><span class="mif-done icon"></span></button>
                                 <select class="timezones"></select>
                         </div>
                     </div>
+                </div>
+                <div class="row">
+                    <p><a href="https://tinyurl.com/5fkj9fp7">browser's features 1</a></p>
+                    <p><a href="https://tinyurl.com/y9jrvh77">browser's features 2</a></p>
+                    <p><a href="modules/demo/demo.html">Web Components Demo</a></p>
                 </div>
             </div>
             <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
