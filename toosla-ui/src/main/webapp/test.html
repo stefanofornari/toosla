@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta name="author" content="Serhii Pimenov">
+    <meta name="description" content="The most popular HTML, CSS, and JS library in Metro style.">
+
+    <link rel="stylesheet" href="metroui/5.0.13/metro.css">
+
+    <title>Ajax :: Select - Metro UI :: Popular HTML, CSS and JS library</title>
+</head>
+<body class="">
+    <div class="container mt-10">
+        <button class="button" onclick="updateSelect('select.html')">Update from HTML</button>
+        <button class="button" onclick="updateSelect('select.json')">Update from JSON</button>
+        <button class="button" onclick="updateSelect('empty')">Update from Empty</button>
+        <select id="select1" data-role="select" class="mt-4">
+            <option value="1">Value 1</option>
+            <option value="2" selected>Value 2</option>
+            <option value="3">Value 3</option>
+        </select>
+    </div>
+
+    <script src="metroui/5.1.0/metro.js"></script>
+    <script>
+        $(document).ready(function() {
+            let options = {};
+            console.log(Intl.supportedValuesOf('timeZone').length);
+            for (const tz of Intl.supportedValuesOf('timeZone')) {
+                options[tz] = tz;
+            };
+
+            console.log(new Date().getTime(), "check1");
+            var select = Metro.getPlugin("#select1", 'select');
+            select.data(options);
+            console.log(new Date().getTime(), "check2");
+        });
+    </script>
+</body>
+</html>
