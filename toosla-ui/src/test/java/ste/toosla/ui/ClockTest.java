@@ -130,4 +130,13 @@ public class ClockTest extends BugFreeWeb {
             .isEqualTo("Europe/Rome");
         then(text(".current-date")).isEqualTo("Wednesday, 1 January 2025");
     }
+
+    @Test
+    public void initialize_settings_form_with_stored_values() throws Exception {
+        loadPage("index.html");
+        exec("window.localStorage.setItem(CONFIG_CLOCK_TIMEZONE, 'Europe/Rome');");
+        click("#clock button.btn-settings");  // open settings panel
+
+        then(exec("$('#clock .settings select.timezones').val()")).isEqualTo("Europe/Rome");
+    }
 }

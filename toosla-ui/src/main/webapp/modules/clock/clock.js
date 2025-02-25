@@ -127,7 +127,9 @@ class ClockController {
             for (const tz of Intl.supportedValuesOf('timeZone')) {
                 options[tz] = tz;
             }
-            Metro.getPlugin(select, "select").data(options);
+            const metroSelect = Metro.getPlugin(select, "select");
+            metroSelect.data(options);
+            metroSelect.val(this.currentTimezone);
         } else if (event === 'close') {
             $('#clock .settings').attr('hidden', 'true');
         } else if (event === 'load') {
