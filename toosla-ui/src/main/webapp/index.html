@@ -1,92 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="Toosla">
     <head>
         <title>Welcome to toosla.me!</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <link rel="stylesheet" href="metroui/5.0.13/metro.css">
-        <link rel="stylesheet" href="metroui/5.0.13/icons.css">
-        <link rel="stylesheet" href="modules/console/css/console.css">
-        <link rel="stylesheet" href="modules/clock/css/clock.css">
+        <link rel="stylesheet" href="metroui/5.1.0/metro.css">
+        <link rel="stylesheet" href="metroui/5.1.0/icons.css">
+        <link rel="stylesheet" href="modules/clock/clock.css">
+        <link rel="stylesheet" href="modules/console/console.css">
     </head>
 
     <body>
         <div class="container">
             <div class="grid" style="height: 500px">
+
                 <div class="row">
                     <div class="cell-8 offset-2">
-                        <div id="clock" class="card">
-                            <div class="card-header">
-                                <span class="h3 current-date"></span>
-                            </div>
-
-                            <div class="card-content d-flex flex-justify-center">
-                                <div class="clock" style="">
-                                    <div class="light">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
-                                    <div><span></span>
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <div>
-                                    <!--button class="button btn-settings" onclick="Metro.charms.toggle('#clock .settings');"-->
-                                    <button class="button btn-settings" onclick="toosla.modules.clock.settings('open')">
-                                        <span class="mif-cog mif-2x icon"></span>
-                                    </button>
-                                    <button class="button" onclick="document.getElementById('clock').requestFullscreen();">
-                                        <span class="mif-enlarge mif-2x icon"></span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="settings" hidden
-                                data-on-open="console.log('charms was opened')"
-                                data-on-close="console.log('charms was closed')"
-                            >
-                                <button class="button btn-cancel" onclick="toosla.modules['clock'].settings('load'); toosla.modules['clock'].settings('close');"><span class="mif-cross-light icon"></span></button>
-                                <button class="button btn-done" onclick="toosla.modules['clock'].settings('save'); toosla.modules['clock'].settings('close')"><span class="mif-done icon"></span></button>
-                                <select class="timezones"></select>
-                        </div>
+                        <clock></clock>
                     </div>
                 </div>
                 <div class="row">
-                    <p><a href="https://tinyurl.com/5fkj9fp7">browser's features 1</a></p>
-                    <p><a href="https://tinyurl.com/y9jrvh77">browser's features 2</a></p>
-                    <p><a href="modules/demo/demo.html">Web Components Demo</a></p>
+                    <a class="cell-3" href="https://tinyurl.com/5fkj9fp7">browser's features 1</a> <a class="cell-3" href="https://tinyurl.com/y9jrvh77">browser's features 2</a>
                 </div>
+                <div class="row">
+                    <div class="cell-12">
+                        <console></console>
+                    </div>
+                </div>
+
             </div>
             <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
         </div>
-        <button class="button" onclick="getPosition();">
+        <!--button class="button" onclick="getPosition();">
             <span class="mif-location icon"></span>
         </button>
         <button class="button" onclick="toosla.checkFeatures();">
             <span class="mif-comment icon"></span>
-        </button>
-        <div id="console"><div class="content text-small"></div><p></p></div>
-        <script src="metroui/5.0.13/metro.js"></script>
-        <script src="tasktimer/3.0.0/tasktimer.min.js"></script>
+        </button-->
+        <script src="metroui/5.1.0/metro.js"></script>
+        <script src="angularjs/1.8.2/angular.min.js"></script>
         <script src="script/toosla.js"></script>
-        <script src="modules/console/script/console.js"></script>
-        <script src="modules/clock/script/clock.js"></script>
-        <script>
-            function getPosition() {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    console.info(`lat: ${position.coords.latitude}, long: ${position.coords.longitude}, altitude: ${position.coords.altitude}, speed: ${position.coords.speed}`);
-                    console.info(JSON.stringify(position));
-                });
-            }
-        </script>
+        <script src="modules/clock/clock.js"></script>
+        <script src="modules/demo/demo.js"></script>
+        <script src="modules/console/console.js"></script>
+        <script src="script/toosla-ng.js"></script>
     </body>
 </html>
