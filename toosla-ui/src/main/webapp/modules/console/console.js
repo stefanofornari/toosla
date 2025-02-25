@@ -23,12 +23,10 @@ const CONSOLE = window.console;
 
 class ConsoleController {
     $onInit() {
-        CONSOLE.log("console init");
         window.console = this;
     };
 
     $postLink() {
-        CONSOLE.log("console post");
     }
 
     $onDestroy() {

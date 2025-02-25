@@ -20,8 +20,9 @@
  */
 package ste.toosla.ui;
 
+import java.io.File;
+import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import ste.xtest.web.BugFreeWeb;
@@ -32,27 +33,21 @@ import ste.xtest.web.BugFreeWeb;
 public class MainPageTest extends BugFreeWeb {
 
     @Before
-    public void beforeEach() {
-        errors.clear();
-    }
-
-    @After
-    public void afterEach() {
-        if (!errors.isEmpty()) {
-            System.out.println("ERRORS\n----------\n" + errors + "\n----------");
-        }
+    public void before() throws Exception {
+        super.before();
+        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
     }
 
     @Test
-    public void version_displayed_in_main_page() {
-        loadPage("src/main/webapp/index.html");
+    public void version_displayed_in_main_page() throws Exception {
+        loadPage("index.html");
         then(visible("#toosla")).isTrue();
         then(text("#toosla #version")).isEqualTo("${project.version}");
     }
 
     @Test
     public void console_text_component() {
-        loadPage("src/main/webapp/index.html");
+        loadPage("index.html");
         then(visible("#console")).isTrue();
 
         exec("console.log('log1', 'log2')");
@@ -87,11 +82,11 @@ public class MainPageTest extends BugFreeWeb {
         // Initial media
         //
         initialMedia("{'prefers-color-scheme': 'light'}");
-        loadPage("src/main/webapp/index.html");
+        loadPage("index.html");
         then(classes("html")).doesNotContain("dark-side");
 
         initialMedia("{'prefers-color-scheme': 'dark'}");
-        loadPage("src/main/webapp/index.html");
+        loadPage("index.html");
         then(classes("html")).contains("dark-side");
 
         //

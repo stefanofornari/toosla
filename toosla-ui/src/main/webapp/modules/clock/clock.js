@@ -31,6 +31,10 @@ class ClockController {
 
     #taskID = null;
 
+    constructor($scope) {
+        this.$scope = $scope;
+    }
+
     clocks() {
         return document.querySelectorAll(".clock");
     };
@@ -107,7 +111,9 @@ class ClockController {
         if (self.#taskID !== null) {
             clearInterval(self.#taskID);
         }
-        self.#taskID = setInterval(() => self.updateTime(), 500);
+        self.#taskID = setInterval(() => {
+            self.$scope.$apply(() => self.updateTime());
+        }, 500);
     }
 
     settings(event) {
@@ -141,6 +147,7 @@ class ClockController {
     }
 
     $onInit() {
+        toosla.modules['clock'] = this;
     };
 
     $postLink() {
@@ -158,11 +165,4 @@ class ClockController {
     }
 }
 
-/*
-angular.module('Toosla', [])
-.component('clock', {
-    templateUrl: "modules/clock/clock.html",
-    controller: ClockController
-});
- *
- */
+ClockController.$inject = ['$scope'];

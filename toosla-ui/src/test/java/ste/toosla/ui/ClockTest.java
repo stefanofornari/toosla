@@ -20,8 +20,9 @@
  */
 package ste.toosla.ui;
 
+import java.io.File;
+import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import ste.xtest.web.BugFreeWeb;
@@ -32,55 +33,49 @@ import ste.xtest.web.BugFreeWeb;
 public class ClockTest extends BugFreeWeb {
 
     @Before
-    public void beforeEach() {
-        errors.clear();
-    }
-
-    @After
-    public void afterEach() {
-        if (!errors.isEmpty()) {
-            System.out.println("ERRORS\n----------\n" + errors + "\n----------");
-        }
-        printConsole();
+    public void before() throws Exception {
+        super.before();
+        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
     }
 
     @Test
-    public void clock_diplayed_on_page() {
-        loadPage("src/main/webapp/index.html");
+    public void clock_displayed_on_page() {
+        loadPage("index.html");
         then(exec("toosla.modules['clock']")).isNotEqualTo("undefined");
         then(visible("#clock")).isTrue();
     }
 
     @Test
     public void initial_timezone_from_settings_or_default() {
-        loadPage("src/main/webapp/index.html");
+        loadPage("index.html");
 
         final String DEFAULT = (String) exec("Intl.DateTimeFormat().resolvedOptions().timeZone");
         then(exec("toosla.modules['clock'].currentTimezone")).isEqualTo(DEFAULT);
 
         exec("""
-            toosla.storage = new StorageStub();
-            toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, "Europe/Paris");
+            window.localStorage.setItem(CONFIG_CLOCK_TIMEZONE, "Europe/Paris");
             toosla.modules.clock.setup();
         """);
         then(exec("toosla.modules.clock.currentTimezone")).isEqualTo("Europe/Paris");
     }
 
     @Test
-    public void console_text_component() throws Exception {
-        loadPage("src/main/webapp/index.html");
+    public void set_current_date() throws Exception {
+        loadPage("index.html");
 
         exec("DateStub.fixedDate = new Date(1736676010098);");
         Thread.sleep(750); // clock updates every 500ms
+        then(exec("toosla.modules.clock.todayDate")).isEqualTo("Sunday, 12 January 2025");
         then(text(".current-date")).isEqualTo("Sunday, 12 January 2025");
         exec("DateStub.fixedDate = new Date(1718961726000);");
         Thread.sleep(750);
+        then(exec("toosla.modules.clock.todayDate")).isEqualTo("Friday, 21 June 2024");
         then(text(".current-date")).isEqualTo("Friday, 21 June 2024");
     }
 
     @Test
     public void settings_button_opens_settings_div() {
-        loadPage("src/main/webapp/index.html");
+        loadPage("index.html");
 
         then(visible("#clock .settings")).isFalse();
         click("#clock button.btn-settings");
@@ -90,9 +85,7 @@ public class ClockTest extends BugFreeWeb {
 
     @Test
     public void change_timezone_settings_changes_the_time_and_save_settings() throws Exception {
-        loadPage("src/main/webapp/index.html");
-
-        exec("toosla.storage = new StorageStub(); toosla.modules.clock.setup()"); // set sturage stub and setup the module again
+        loadPage("index.html");
 
         exec("DateStub.fixedDate = new Date(1735686060000);"); // 20250101 000101 UTC
         click("#clock button.btn-settings");  // open settings panel
@@ -105,7 +98,7 @@ public class ClockTest extends BugFreeWeb {
         click("#clock .settings button.btn-done"); // click done button
         then(visible("#clock .settings")).isFalse();
         Thread.sleep(750); // clock updates every 500ms
-        then(exec("toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE)"))
+        then(exec("window.localStorage.getItem(CONFIG_CLOCK_TIMEZONE)"))
                 .isEqualTo("America/New_York");
         then(text(".current-date")).isEqualTo("Tuesday, 31 December 2024");
 
@@ -114,12 +107,11 @@ public class ClockTest extends BugFreeWeb {
 
     @Test
     public void change_timezone_settings_does_not_save_if_cancel_is_pressed() throws Exception {
-        loadPage("src/main/webapp/index.html");
+        loadPage("index.html");
 
         exec("""
             DateStub.fixedDate = new Date(1735686060000); // 20250101 000101 UTC
-            toosla.storage = new StorageStub();
-            toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, "Europe/Rome");
+            window.localStorage.setItem(CONFIG_CLOCK_TIMEZONE, "Europe/Rome");
             toosla.modules.clock.setup();
         """); // set stubs and setup the module again
 
@@ -134,7 +126,7 @@ public class ClockTest extends BugFreeWeb {
         then(text(".current-date")).isEqualTo("Tuesday, 31 December 2024");
         click("#clock .settings button.btn-cancel"); // click done button
         then(visible("#clock .settings")).isFalse();
-        then(exec("toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE)"))
+        then(exec("window.localStorage.getItem(CONFIG_CLOCK_TIMEZONE)"))
             .isEqualTo("Europe/Rome");
         then(text(".current-date")).isEqualTo("Wednesday, 1 January 2025");
     }
