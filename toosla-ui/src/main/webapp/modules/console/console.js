@@ -65,5 +65,5 @@ class ConsoleController {
         this.out("D", text);
     }
 }
-
+toosla.registerModule("console", ConsoleController);
 

@@ -149,10 +149,12 @@ class ClockController {
     }
 
     $onInit() {
+        console.debug("Clock componenent initialized!");
         toosla.modules['clock'] = this;
     };
 
     $postLink() {
+        console.debug("Clock componenent linked!");
         try {
             this.setup();
         } catch (e) {
@@ -168,3 +170,4 @@ class ClockController {
 }
 
 ClockController.$inject = ['$scope'];
+toosla.registerModule('clock', ClockController);

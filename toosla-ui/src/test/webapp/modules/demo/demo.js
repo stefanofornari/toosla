@@ -4,6 +4,8 @@ class DemoController {
     name = "World";
     time = "";
 
+    lastSettingsEvent = "pippo";
+
     #taskID = null;
 
     constructor($scope) {
@@ -27,7 +29,7 @@ class DemoController {
     }
 
     settings(event) {
-        console.log("Demo settings", event);
+        this.lastSettingsEvent = event;
     }
 
     $onInit() {

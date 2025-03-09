@@ -7,16 +7,23 @@
         <link rel="stylesheet" href="metroui/5.1.0/metro.css">
         <link rel="stylesheet" href="metroui/5.1.0/icons.css">
         <link rel="stylesheet" href="modules/clock/clock.css">
+        <link rel="stylesheet" href="modules/toosla/toosla.css">
+        <!-- TODO: to be added runtime -->
         <link rel="stylesheet" href="modules/console/console.css">
+        <!-- -->
     </head>
 
     <body>
         <div class="container">
             <div class="grid" style="height: 500px">
-
                 <div class="row">
                     <div class="cell-8 offset-2">
                         <clock></clock>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="cell-8 offset-2">
+                        <demo></demo>
                     </div>
                 </div>
                 <div class="row">
@@ -29,20 +36,32 @@
                 </div>
 
             </div>
-            <div id="toosla" class="pos-fixed pos-bottom-right"><span id="version" class="p-2"></span></div>
+            <toosla></toosla>
+        </div> <!-- container -->
+        <div
+            id="toosla-settings"
+            data-role="charms"
+            data-position="left"
+            data-opacity=".75"
+            data-on-open="console.log('charms was opened')"
+            data-on-close="console.log('charms was closed')"
+            >
+            <div class="toolbar">
+            <button class="button light" ng-click="closeSettings(true)">OK</button><button class="button dark" ng-click="closeSettings(false)">Cancel</button>
+            </div>
+            <p></p>
+            <hr>
+            <p></p>
         </div>
-        <!--button class="button" onclick="getPosition();">
-            <span class="mif-location icon"></span>
-        </button>
-        <button class="button" onclick="toosla.checkFeatures();">
-            <span class="mif-comment icon"></span>
-        </button-->
+
         <script src="metroui/5.1.0/metro.js"></script>
         <script src="angularjs/1.8.2/angular.min.js"></script>
         <script src="script/toosla.js"></script>
+        <!-- TODO: to be added runtime -->
         <script src="modules/clock/clock.js"></script>
-        <script src="modules/demo/demo.js"></script>
         <script src="modules/console/console.js"></script>
+        <script src="modules/demo/demo.js"></script>
+        <!-- -->
         <script src="script/toosla-ng.js"></script>
     </body>
 </html>

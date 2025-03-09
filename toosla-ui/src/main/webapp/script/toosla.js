@@ -19,17 +19,19 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-var toosla = {  // back to const ?
-    version: "${project.version}",
-    build: "${buildTimestamp}",
+//
+// TODO: move all methods manipulating the dom into the controller
+//
+class Toosla {  // back to const ?
+    version = "${project.version}";
+    build = "${buildTimestamp}";
 
-    modules: [],
+    #modules = new Map();
 
-    setup: function() {
-        tooslats = new Date();
-        let self = this;
+    setup() {
+        console.debug("Toosla setup start");
 
-        $("#version").text(toosla.version);
+        $("#version").text(this.version);
         console.info(
             `%c Toosla %cv${this.version} %c${this.build}`,
             "color: white; font-weight: bold; background: blue",
@@ -37,13 +39,15 @@ var toosla = {  // back to const ?
             "color: white; background: darkgreen|color: white; background: #0080fe;"
         );
 
-        self.darkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+        this.darkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             self.darkMode(event.matches);
         });
-    },
 
-    darkMode: function(dark) {
+        console.debug("Toosla setup end");
+    };
+
+    darkMode(dark) {
         if (dark){
             // switch to dark
             console.info("Switching Toosla to dark mode");
@@ -53,16 +57,126 @@ var toosla = {  // back to const ?
              console.info("Switching Toosla to light mode");
             $("html").removeClass("dark-side");
         }
-    },
+    };
 
-    checkFeatures: function() {
+    checkFeatures() {
         console.info("Browser languages:", navigator.languages);
         console.info("Full screen support:", document.fullscreenEnabled);
         console.info("Dark mode: ", window.matchMedia);
         console.info("Local Storage Access: ", window.localStorage.length === 0);
+    };
+
+    registerModule(name, controller) {
+        this.#modules.set(name, controller);
+    }
+
+    modules() {
+        //
+        // make sure the toosla component is always the latest
+        //
+        const moduleList = Array.from(this.#modules.entries());
+        moduleList.push(["toosla", TooslaController]);
+        return moduleList;
     }
 };
 
-//  const { TaskTimer } = tasktimer;
+class TooslaController {
+    constructor($scope, $compile, $timeout) {
+        this.$scope = $scope;
+        this.$compile = $compile;
+        this.$timeout = $timeout;
 
-$(document).ready(() => toosla.setup());
+        this.$scope.moduleSettings = this.moduleSettings.bind(this);
+        this.$scope.closeSettings = this.closeSettings.bind(this);
+        this.$scope.toogleFullscreen = this.moduleSettings.bind(this);
+    }
+
+    $onInit() {
+        console.log('Toosla initialized!');
+    };
+
+    $postLink() {
+        console.log('Toosla linked!');
+        this.$timeout(() => { // to make sure it executes after all templates
+                              // have been loaded and rendered
+            try {
+                toosla.setup(this.$scope);
+
+                //
+                // 1. add application button bar to each module's .application-action-bar element
+                // 2. move the settings div into #toosla-settings
+                //
+
+                for ([name, controller] of toosla.modules()) {
+                    const actionBar = $(`#${name} .application-action-bar`);
+                    const settingsPanel = $(`#${name} .settings`);
+
+                    if (actionBar && actionBar.length>0) {
+                        const actionBar = $(`#${name} .application-action-bar`);
+                        const buttons = [
+                            angular.element(
+                                `<button class="button toosla-btn-fullscreen" ng-click="toogleFullscreen('${name}')"><span class="mif-enlarge mif-2x icon"></span></button>`
+                            )
+                        ];
+
+                        if (settingsPanel && settingsPanel.length>0) {
+                            buttons.push(
+                                angular.element(
+                                    `<button class="button toosla-btn-settings" ng-click="moduleSettings('${name}', 'load')"><span class="mif-cog mif-2x icon"></span></button>`
+                                )
+                            );
+
+                            //
+                            // Moving module settings element into toosla-settings
+                            //
+                            settingsPanel.appendTo('#toosla-settings');
+                        }
+                        for (const button of buttons) {
+                            $(`#${name} .application-action-bar`).prepend(button);
+                            this.$compile(button)(this.$scope);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e.stack);
+            }
+        });
+    }
+
+    $onDestroy() {
+        console.log('Toosla destroyed!');
+    }
+
+    moduleSettings(module, action) {
+        console.debug("Toosla settings clicked for", module, action);
+
+        //
+        // Mark which module settings to edit in an attribute of #toosla-settings
+        //
+        $("#toosla-settings").attr("module", module);
+
+        const controller = angular.element($(`#${module}`)).controller(module);
+        if (action === "load" || action ==="save") {
+            controller.settings(action);
+        }
+
+        if (action === "load") {
+            Metro.charms.open("#toosla-settings");
+        } else {
+            Metro.charms.close("#toosla-settings");
+            $("#toosla-settings").removeAttr("module");
+        }
+    }
+
+    toogleFullscreen(module) {
+        console.log("Toosla toogle fullscreen clicked for", module);
+    }
+
+    closeSettings(save) {
+        this.moduleSettings($("#toosla-settings").attr("module"), save ? "save" : "close");
+    }
+}
+
+//  const { TaskTimer } = tasktimer;
+const toosla = new Toosla();
+

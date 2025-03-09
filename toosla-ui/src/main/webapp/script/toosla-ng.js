@@ -19,13 +19,12 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-angular.module('Toosla', [])
-.component('console', {
-    templateUrl: "modules/console/console.html",
-    controller: ConsoleController
-})
-.component('clock', {
-    templateUrl: "modules/clock/clock.html",
-    controller: ClockController
-});
+const tooslaModule = angular.module('Toosla', []);
 
+for ([name, controller] of toosla.modules()) {
+    console.debug("adding angular component", name);
+    tooslaModule.component(name, {
+        templateUrl: `modules/${name}/${name}.html`,
+        controller: controller
+    });
+};
