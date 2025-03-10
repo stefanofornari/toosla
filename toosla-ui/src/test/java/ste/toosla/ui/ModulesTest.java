@@ -44,17 +44,19 @@ public class ModulesTest extends BugFreeWeb {
     @Test
     public void module_is_initialized() throws Exception {
         then(exec("toosla.modules()")).isNotNull().isNotEqualTo("undefined");
-        then(exec("toosla.modules().length")).isEqualTo(3); // demo + demo2 + toosla
-        then(exec("toosla.modules()[0].demo")).isNotNull();
+        then(exec("toosla.modules().length")).isEqualTo(4); // demo1 + demo2 + demo3 + toosla
+        then(exec("toosla.modules()[0].demo1")).isNotNull();
         then(exec("toosla.modules()[0].demo2")).isNotNull();
-        then(exec("typeof angular.element($('#demo')).controller('demo')")).isNotEqualTo("undefined");
+        then(exec("toosla.modules()[0].demo3")).isNotNull();
+        then(exec("typeof angular.element($('#demo1')).controller('demo1')")).isNotEqualTo("undefined");
         then(exec("typeof angular.element($('#demo2')).controller('demo2')")).isNotEqualTo("undefined");
+        then(exec("typeof angular.element($('#demo3')).controller('demo3')")).isNotEqualTo("undefined");
     }
 
     @Test
     public void toosla_button_bar() throws Exception {
-        then(exec("$('#demo .toosla-btn-settings').length")).isEqualTo(1);
-        then(exec("$('#demo .toosla-btn-fullscreen').length")).isEqualTo(1);
+        then(exec("$('#demo1 .toosla-btn-settings').length")).isEqualTo(1);
+        then(exec("$('#demo1 .toosla-btn-fullscreen').length")).isEqualTo(1);
 
         then(exec("$('#demo2 .toosla-btn-settings').length")).isEqualTo(0);
         then(exec("$('#demo2 .toosla-btn-fullscreen').length")).isEqualTo(1);
@@ -62,37 +64,49 @@ public class ModulesTest extends BugFreeWeb {
 
     @Test
     public void move_module_settings_into_toosla_settings() throws Exception {
-        then(exec("$('#toosla-settings .settings').length")).isEqualTo(1);
+        then(exec("$('#toosla-settings .settings').length")).isEqualTo(2);
+        then(visible("#toosla-settings .settings")).isFalse();
     }
 
     @Test
-    public void open_settings_charms_on_click() throws Exception {
+    public void open_settings_charms_on_click_and_show_proper_settings() throws Exception {
         //
         // Initial state
         //
         then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isFalse();
 
         //
-        // Open
+        // Open with demo1
         //
-        click("#demo .toosla-btn-settings");
+        click("#demo1 .toosla-btn-settings");
         then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isTrue();
+        then(visible("#toosla-settings div.settings[module|=\\'demo1\\']")).isTrue();
+        then(visible("#toosla-settings div.settings[module|=\\'demo2\\']")).isFalse();
+        then(visible("#toosla-settings div.settings[module|=\\'demo3\\']")).isFalse();
+
+        //
+        // Open with demo3
+        //
+        click("#demo3 .toosla-btn-settings");
+        then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isTrue();
+        then(visible("#toosla-settings div.settings[module|=\\'demo1\\']")).isFalse();
+        then(visible("#toosla-settings div.settings[module|=\\'demo2\\']")).isFalse();
+        then(visible("#toosla-settings div.settings[module|=\\'demo3\\']")).isTrue();
     }
 
     @Test
     public void trigger_settings_open_and_close() throws Exception {
-        click("#demo .toosla-btn-settings");
-        then(exec("angular.element($('#demo')).controller('demo').lastSettingsEvent")).isEqualTo("load");
-        exec("angular.element($('#demo')).controller('demo').lastSettingsEvent = null");
+        click("#demo1 .toosla-btn-settings");
+        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("load");
+        exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent = null");
         then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isTrue();
 
         click("#toosla-settings-toolbar button:nth-child(2)"); // pressing Cancel...
-        then(exec("angular.element($('#demo')).controller('demo').lastSettingsEvent")).isNull();
+        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isNull();
         then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isFalse();
 
-        click("#demo .toosla-btn-settings"); // open again
+        click("#demo1 .toosla-btn-settings"); // open again
         click("#toosla-settings-toolbar button:nth-child(1)"); // pressing OK...
-        then(exec("angular.element($('#demo')).controller('demo').lastSettingsEvent")).isEqualTo("save");
+        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("save");
     }
-
 }

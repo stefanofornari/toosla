@@ -119,10 +119,8 @@ class ClockController {
     settings(event) {
         console.debug("Clock settings action:", event);
 
-        const select = $("#clock .settings select.timezones");
-        if (event === 'open') {
-            $('#clock .settings').removeAttr('hidden');
-
+        const select = $("#toosla-settings .settings select.timezones");
+        if (event === 'load') {
             let options = {};
             for (const tz of Intl.supportedValuesOf('timeZone')) {
                 options[tz] = tz;
@@ -130,9 +128,7 @@ class ClockController {
             const metroSelect = Metro.getPlugin(select, "select");
             metroSelect.data(options);
             metroSelect.val(this.currentTimezone);
-        } else if (event === 'close') {
-            $('#clock .settings').attr('hidden', 'true');
-        } else if (event === 'load') {
+
             try {
                 const TZ = localStorage.getItem(CONFIG_CLOCK_TIMEZONE);
                 if (TZ) {

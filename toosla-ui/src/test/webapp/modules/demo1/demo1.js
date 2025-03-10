@@ -1,5 +1,5 @@
 
-class DemoController {
+class DemoController1 {
 
     name = "World";
     time = "";
@@ -33,11 +33,11 @@ class DemoController {
     }
 
     $onInit() {
-        console.log('Demo component initialized!');
+        console.log('Demo1 component initialized!');
     };
 
     $postLink() {
-        console.log('Demo component linked!');
+        console.log('Demo1 component linked!');
         try {
             this.setup();
         } catch (e) {
@@ -46,8 +46,8 @@ class DemoController {
     }
 
     $onDestroy() {
-        console.log('Demo omponent destroyed!');
+        console.log('Demo1 omponent destroyed!');
     }
 }
 
-toosla.registerModule("demo", DemoController);
+toosla.registerModule("demo1", DemoController1);

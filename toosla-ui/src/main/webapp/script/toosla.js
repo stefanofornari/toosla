@@ -99,46 +99,45 @@ class TooslaController {
         console.log('Toosla linked!');
         this.$timeout(() => { // to make sure it executes after all templates
                               // have been loaded and rendered
-            try {
-                toosla.setup(this.$scope);
+            toosla.setup(this.$scope);
 
-                //
-                // 1. add application button bar to each module's .application-action-bar element
-                // 2. move the settings div into #toosla-settings
-                //
+            //
+            // 1. add application button bar to each module's .application-action-bar element
+            // 2. move the settings div into #toosla-settings
+            //
 
-                for ([name, controller] of toosla.modules()) {
+            for ([name, controller] of toosla.modules()) {
+                const actionBar = $(`#${name} .application-action-bar`);
+                const settingsPanel = $(`#${name} .settings`);
+
+                console.log("settings for module", name, actionBar, settingsPanel);
+
+                if (actionBar && actionBar.length>0) {
                     const actionBar = $(`#${name} .application-action-bar`);
-                    const settingsPanel = $(`#${name} .settings`);
+                    const buttons = [
+                        angular.element(
+                            `<button class="button toosla-btn-fullscreen" ng-click="toogleFullscreen('${name}')"><span class="mif-enlarge mif-2x icon"></span></button>`
+                        )
+                    ];
 
-                    if (actionBar && actionBar.length>0) {
-                        const actionBar = $(`#${name} .application-action-bar`);
-                        const buttons = [
+                    if (settingsPanel && settingsPanel.length>0) {
+                        buttons.push(
                             angular.element(
-                                `<button class="button toosla-btn-fullscreen" ng-click="toogleFullscreen('${name}')"><span class="mif-enlarge mif-2x icon"></span></button>`
+                                `<button class="button toosla-btn-settings" ng-click="moduleSettings('${name}', 'load')"><span class="mif-cog mif-2x icon"></span></button>`
                             )
-                        ];
+                        );
 
-                        if (settingsPanel && settingsPanel.length>0) {
-                            buttons.push(
-                                angular.element(
-                                    `<button class="button toosla-btn-settings" ng-click="moduleSettings('${name}', 'load')"><span class="mif-cog mif-2x icon"></span></button>`
-                                )
-                            );
-
-                            //
-                            // Moving module settings element into toosla-settings
-                            //
-                            settingsPanel.appendTo('#toosla-settings');
-                        }
-                        for (const button of buttons) {
-                            $(`#${name} .application-action-bar`).prepend(button);
-                            this.$compile(button)(this.$scope);
-                        }
+                        //
+                        // Moving module settings element into toosla-settings
+                        //
+                        settingsPanel.attr("module", name); settingsPanel.hide();
+                        settingsPanel.appendTo('#toosla-settings');
+                    }
+                    for (const button of buttons) {
+                        $(`#${name} .application-action-bar`).prepend(button);
+                        this.$compile(button)(this.$scope);
                     }
                 }
-            } catch (e) {
-                console.error(e.stack);
             }
         });
     }
@@ -152,8 +151,11 @@ class TooslaController {
 
         //
         // Mark which module settings to edit in an attribute of #toosla-settings
+        // and make the module settings visible hiding everything else
         //
         $("#toosla-settings").attr("module", module);
+        $("#toosla-settings .settings").hide();
+        $(`#toosla-settings div.settings[module|='${module}']`).show();
 
         const controller = angular.element($(`#${module}`)).controller(module);
         if (action === "load" || action ==="save") {

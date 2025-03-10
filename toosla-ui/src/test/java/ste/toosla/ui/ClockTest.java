@@ -78,9 +78,9 @@ public class ClockTest extends BugFreeWeb {
         loadPage("index.html");
 
         then(visible("#clock .settings")).isFalse();
-        click("#clock button.btn-settings");
-        then(visible("#clock .settings")).isTrue();
-        then((String) exec("$('#clock .settings .timezones').html()")).contains("Europe/Rome");
+        click("#clock button.toosla-btn-settings");
+        then(visible("#toosla-settings .settings")).isTrue();
+        then((String) exec("$('#toosla-settings .settings .timezones').html()")).contains("Europe/Rome");
     }
 
     @Test
@@ -88,7 +88,7 @@ public class ClockTest extends BugFreeWeb {
         loadPage("index.html");
 
         exec("DateStub.fixedDate = new Date(1735686060000);"); // 20250101 000101 UTC
-        click("#clock button.btn-settings");  // open settings panel
+        click("#clock button.toosla-btn-settings");  // open settings panel
         then(visible("#clock .settings")).isTrue();
         exec("""
             const S = $('#clock .settings select.timezones');
