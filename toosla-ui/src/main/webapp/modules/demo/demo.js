@@ -26,8 +26,8 @@ class DemoController {
         }, 500);
     }
 
-    settings(event) {
-        console.log("Demo settings", event);
+    settings(action, status) {
+        console.log("Demo settings", action, status);
     }
 
     $onInit() {

@@ -97,16 +97,16 @@ public class ModulesTest extends BugFreeWeb {
     @Test
     public void trigger_settings_open_and_close() throws Exception {
         click("#demo1 .toosla-btn-settings");
-        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("load");
+        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("open");
         exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent = null");
         then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isTrue();
 
-        click("#toosla-settings-toolbar button:nth-child(2)"); // pressing Cancel...
-        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isNull();
+        click("#toosla-settings button.btn-cancel"); // pressing Cancel...
+        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("close-0");
         then((Boolean)exec("Metro.charms.isOpen('#toosla-settings');")).isFalse();
 
         click("#demo1 .toosla-btn-settings"); // open again
-        click("#toosla-settings-toolbar button:nth-child(1)"); // pressing OK...
-        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("save");
+        click("#toosla-settings button.button.btn-done"); // pressing Done...
+        then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("close-1");
     }
 }

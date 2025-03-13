@@ -4,7 +4,7 @@ class DemoController1 {
     name = "World";
     time = "";
 
-    lastSettingsEvent = "pippo";
+    lastSettingsEvent = null;
 
     #taskID = null;
 
@@ -28,8 +28,8 @@ class DemoController1 {
         }, 500);
     }
 
-    settings(event) {
-        this.lastSettingsEvent = event;
+    settings(action, status) {
+        this.lastSettingsEvent = action + ((status === undefined) ? "" : `-${status}`);
     }
 
     $onInit() {
