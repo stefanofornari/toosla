@@ -89,24 +89,11 @@ class ClockController {
     setup() {
         const self = this;
 
-        //
-        // initialize available timezones and add them to the timezone select
-        // in settings
-        //
-
         $("#clock .settings select.timezones").on("itemselect", function() {
             self.timeZone($(this).val());
         });
 
-        try {
-            const TZ = localStorage.getItem(CONFIG_CLOCK_TIMEZONE);
-            if (TZ) {
-                this.timeZone(TZ);
-            }
-        } catch (e) {
-            console.error("Error reading TZ from local storage, using default");
-        }
-
+        self.loadSettings();
         self.updateTime();
         if (self.#taskID !== null) {
             clearInterval(self.#taskID);
@@ -114,33 +101,57 @@ class ClockController {
         self.#taskID = setInterval(() => {
             self.$scope.$apply(() => self.updateTime());
         }, 500);
+
+        return;
     }
 
-    settings(event) {
-        console.debug("Clock settings action:", event);
+    settings(action, status) {
+        console.debug("Clock settings action:", action, status);
 
         const select = $("#toosla-settings .settings select.timezones");
-        if (event === 'load') {
+        if (action === 'open') {
+            //
+            // initialize available timezones and add them to the select, then
+            // select the current timezone
+            //
             let options = {};
             for (const tz of Intl.supportedValuesOf('timeZone')) {
                 options[tz] = tz;
             }
             const metroSelect = Metro.getPlugin(select, "select");
             metroSelect.data(options);
-            metroSelect.val(this.currentTimezone);
 
-            try {
-                const TZ = localStorage.getItem(CONFIG_CLOCK_TIMEZONE);
-                if (TZ) {
-                    this.timeZone(TZ);
-                }
-            } catch (e) {
-                console.error("Error reading TZ from local storage, using default");
+            metroSelect.val(this.currentTimezone);
+        } else if (action === 'close') {
+            if (status === 1) {
+                this.saveSettings(Metro.getPlugin(select, "select").val());
+            } else {
+                this.loadSettings();
             }
-        } else if (event === 'save') {
-            const TZ = Metro.getPlugin(select, "select").val();
-            this.timeZone(TZ);
-            localStorage.setItem(CONFIG_CLOCK_TIMEZONE, TZ);
+        }
+    }
+
+    loadSettings() {
+        try {
+            const TZ = localStorage.getItem(CONFIG_CLOCK_TIMEZONE);
+            if (TZ) {
+                this.timeZone(TZ); return;
+            }
+        } catch (e) {
+            console.error("Error reading TZ from local storage, using default");
+        }
+
+        //
+        // if no settings available, use the default
+        //
+        this.timeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    }
+
+    saveSettings(tz) {
+        try {
+            localStorage.setItem(CONFIG_CLOCK_TIMEZONE, tz);
+        } catch (e) {
+            console.error("Error writing TZ to local storage");
         }
     }
 

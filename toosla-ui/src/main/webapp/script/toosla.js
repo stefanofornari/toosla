@@ -123,7 +123,7 @@ class TooslaController {
                     if (settingsPanel && settingsPanel.length>0) {
                         buttons.push(
                             angular.element(
-                                `<button class="button toosla-btn-settings" ng-click="moduleSettings('${name}', 'load')"><span class="mif-cog mif-2x icon"></span></button>`
+                                `<button class="button toosla-btn-settings" ng-click="moduleSettings('${name}', 'open')"><span class="mif-cog mif-2x icon"></span></button>`
                             )
                         );
 
@@ -146,27 +146,26 @@ class TooslaController {
         console.log('Toosla destroyed!');
     }
 
-    moduleSettings(module, action) {
-        console.debug("Toosla settings clicked for", module, action);
-
-        //
-        // Mark which module settings to edit in an attribute of #toosla-settings
-        // and make the module settings visible hiding everything else
-        //
-        $("#toosla-settings").attr("module", module);
-        $("#toosla-settings .settings").hide();
-        $(`#toosla-settings div.settings[module|='${module}']`).show();
+    moduleSettings(module, action, status) {
+        console.debug("Toosla settings clicked for", module, action, status);
 
         const controller = angular.element($(`#${module}`)).controller(module);
-        if (action === "load" || action ==="save") {
-            controller.settings(action);
-        }
 
-        if (action === "load") {
-            Metro.charms.open("#toosla-settings");
-        } else {
+        if (action == "close") {
+            controller.settings(action, status);
             Metro.charms.close("#toosla-settings");
             $("#toosla-settings").removeAttr("module");
+        } else if (action === "open") {
+            $("#toosla-settings").attr("module", module);
+            //
+            // Mark which module settings to edit in an attribute of #toosla-settings
+            // and make the module settings visible hiding everything else
+            //
+            $("#toosla-settings .settings").hide();
+            $(`#toosla-settings div.settings[module|='${module}']`).show();
+
+            controller.settings(action);
+            Metro.charms.open("#toosla-settings");
         }
     }
 
@@ -175,7 +174,7 @@ class TooslaController {
     }
 
     closeSettings(save) {
-        this.moduleSettings($("#toosla-settings").attr("module"), save ? "save" : "close");
+        this.moduleSettings($("#toosla-settings").attr("module"), "close", save ? 1 : 0);
     }
 }
 
