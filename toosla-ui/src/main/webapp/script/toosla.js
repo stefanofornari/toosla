@@ -39,7 +39,8 @@ class Toosla {  // back to const ?
             "color: white; background: darkgreen|color: white; background: #0080fe;"
         );
 
-        this.darkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const self = this;
+        self.darkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             self.darkMode(event.matches);
         });
