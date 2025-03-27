@@ -1,0 +1,59 @@
+<div id="calc" class="card">
+    <div class="card-header">
+        <span class="h3">Toosla Calculator</span>
+    </div>
+    <div class="card-content d-flex flex-justify-center">
+        <div class="calc-body">
+            <div class="calc-screen">
+                <div class="calc-operation">{{$ctrl.result}}</div>
+                <div class="calc-typed" >
+                    <form class="inline-form" style="margin:0px">
+                        <input type="text"
+                               data-role="input"
+                               data-clear-button="false"
+                               data-append="<span class='mif-arrow-left'></span>"
+                               ng-model="$ctrl.expression"
+                               inputmode="none"
+                        >
+                    </form>
+                </div>
+            </div>
+            <div class="calc-button-row">
+                <div class="calc-button">7</div>
+                <div class="calc-button">8</div>
+                <div class="calc-button">9</div>
+                <div class="calc-button c">C</div>
+            </div>
+            <div class="calc-button-row">
+                <div class="calc-button">4</div>
+                <div class="calc-button">5</div>
+                <div class="calc-button">6</div>
+                <div class="calc-button l">⊕</div>
+            </div>
+            <div class="calc-button-row">
+                <div class="calc-button">1</div>
+                <div class="calc-button">2</div>
+                <div class="calc-button">3</div>
+                <div class="calc-button l">⊖</div>
+            </div>
+            <div class="calc-button-row">
+                <div class="calc-button">.</div>
+                <div class="calc-button">0</div>
+                <div class="calc-button">%</div>
+                <div class="calc-button l">⊗</div>
+            </div>
+            <div class="calc-button-row">
+                <div class="calc-button">(</div>
+                <div class="calc-button">)</div>
+                <div class="calc-button">∓</div>
+                <div class="calc-button l">⊘</div>
+            </div>
+            <div class="calc-button-row">
+                <div class="calc-button e">=</div>
+            </div>
+        </div>
+    </div> <!-- card content -->
+    <div class="card-footer">
+        <div class="application-action-bar"></div>
+    </div> <!-- card footer -->
+</div>

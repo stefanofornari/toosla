@@ -79,6 +79,10 @@ class Toosla {  // back to const ?
         moduleList.push(["toosla", TooslaController]);
         return moduleList;
     }
+
+    getModuleController(module) {
+        return this.#modules.get(module);
+    }
 };
 
 class TooslaController {
