@@ -44,10 +44,10 @@ class ClockController {
     }
 
     timeZone(tz) {
-        console.info("Setting timezone to", tz)
+        console.info("Setting timezone to", tz);
         this.currentTimezone = tz;
         this.timeFormat = new Intl.DateTimeFormat('en-GB', { timeStyle: 'medium', timeZone: tz });
-        this.dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeZone: tz  })
+        this.dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeZone: tz  });
     }
 
     updateTime() {
@@ -138,6 +138,7 @@ class ClockController {
                 this.timeZone(TZ); return;
             }
         } catch (e) {
+            console.error(e.stack);
             console.error("Error reading TZ from local storage, using default");
         }
 
@@ -157,7 +158,6 @@ class ClockController {
 
     $onInit() {
         console.debug("Clock componenent initialized!");
-        toosla.modules['clock'] = this;
     };
 
     $postLink() {
