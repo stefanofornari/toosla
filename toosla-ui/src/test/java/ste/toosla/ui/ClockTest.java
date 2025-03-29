@@ -41,7 +41,7 @@ public class ClockTest extends BugFreeWeb {
     @Test
     public void clock_displayed_on_page() {
         loadPage("index.html");
-        then(exec("toosla.modules['clock']")).isNotEqualTo("undefined");
+        then(exec("toosla.modules.getController('clock')")).isNotEqualTo("undefined");
         then(visible("#clock")).isTrue();
     }
 
@@ -50,13 +50,13 @@ public class ClockTest extends BugFreeWeb {
         loadPage("index.html");
 
         final String DEFAULT = (String) exec("Intl.DateTimeFormat().resolvedOptions().timeZone");
-        then(exec("toosla.modules['clock'].currentTimezone")).isEqualTo(DEFAULT);
+        then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo(DEFAULT);
 
         exec("""
             window.localStorage.setItem(CONFIG_CLOCK_TIMEZONE, "Europe/Paris");
-            toosla.modules.clock.setup();
+            angular.element($(`#clock`)).controller('clock').setup();
         """);
-        then(exec("toosla.modules.clock.currentTimezone")).isEqualTo("Europe/Paris");
+        then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo("Europe/Paris");
     }
 
     @Test
@@ -65,11 +65,11 @@ public class ClockTest extends BugFreeWeb {
 
         exec("DateStub.fixedDate = new Date(1736676010098);");
         Thread.sleep(750); // clock updates every 500ms
-        then(exec("toosla.modules.clock.todayDate")).isEqualTo("Sunday, 12 January 2025");
+        then(exec("angular.element($(`#clock`)).controller('clock').todayDate")).isEqualTo("Sunday, 12 January 2025");
         then(text(".current-date")).isEqualTo("Sunday, 12 January 2025");
         exec("DateStub.fixedDate = new Date(1718961726000);");
         Thread.sleep(750);
-        then(exec("toosla.modules.clock.todayDate")).isEqualTo("Friday, 21 June 2024");
+        then(exec("angular.element($(`#clock`)).controller('clock').todayDate")).isEqualTo("Friday, 21 June 2024");
         then(text(".current-date")).isEqualTo("Friday, 21 June 2024");
     }
 
@@ -119,11 +119,11 @@ public class ClockTest extends BugFreeWeb {
             S.trigger("itemselect");
         """); // pick timezone
         Thread.sleep(750); // clock updates every 500ms
-        then(exec("toosla.modules.clock.currentTimezone")).isEqualTo("America/New_York");
+        then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo("America/New_York");
         click("#toosla-settings button.btn-cancel"); // click cancel button
         then(exec("window.localStorage.getItem(CONFIG_CLOCK_TIMEZONE)"))
             .isEqualTo("Europe/Rome");
-        then(exec("toosla.modules.clock.currentTimezone")).isEqualTo("Europe/Rome");
+        then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo("Europe/Rome");
     }
 
     @Test
