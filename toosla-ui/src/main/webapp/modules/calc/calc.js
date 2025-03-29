@@ -39,7 +39,13 @@ class CalcController {
         // if = calculate and show the result
         //
         if (key === "=") {
-            this.result = parseFloat(math.evaluate(this.expression).toFixed(15));
+            try {
+                this.result = parseFloat(math.evaluate(this.expression).toFixed(15));
+            } catch (err) {
+                console.error(err);
+                this.result = "Error";
+            }
+            this.$scope.$apply();
             return;
         }
 

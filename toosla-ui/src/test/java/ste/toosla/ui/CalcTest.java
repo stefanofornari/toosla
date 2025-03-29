@@ -212,4 +212,16 @@ public class CalcTest extends BugFreeWeb {
 
         Thread.sleep(250); then(val(".calc-typed input")).isEqualTo("2");
     }
+
+    @Test
+    public void show_error_if_expression_is_invalid() throws Exception {
+        exec("""
+             $('#calc .calc-button')[16].click(); // (
+             $('#calc .calc-button')[ 9].click(); // 2
+             $('#calc .calc-button')[20].click(); // =
+            """);
+
+        Thread.sleep(250);
+        then(text("#calc .calc-operation")).isEqualTo("Error");
+    }
 }
