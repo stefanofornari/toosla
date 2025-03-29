@@ -23,8 +23,8 @@
 // TODO: move all methods manipulating the dom into the controller
 //
 class Toosla {  // back to const ?
-    version = "${project.version}";
-    build = "${buildTimestamp}";
+    version = "@{project.version}";
+    build = "@{buildTimestamp}";
 
     #modules = new Map();
 
@@ -156,7 +156,7 @@ class TooslaController {
 
         const controller = angular.element($(`#${module}`)).controller(module);
 
-        if (action == "close") {
+        if (action === "close") {
             controller.settings(action, status);
             Metro.charms.close("#toosla-settings");
             $("#toosla-settings").removeAttr("module");

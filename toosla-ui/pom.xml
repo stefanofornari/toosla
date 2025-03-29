@@ -61,6 +61,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
+                <configuration>
+                    <useDefaultDelimiters>false</useDefaultDelimiters>
+                    <delimiters>
+                        <delimiter>@{*}</delimiter> <!-- to avoid collision with JS interpolation -->
+                    </delimiters>
+                </configuration>
+
+
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -70,6 +78,9 @@
                         <descriptor>src/main/assembly/dir.xml</descriptor>
                     </descriptors>
                     <appendAssemblyId>false</appendAssemblyId>
+                    <delimiters>
+                        <delimiter>@{*}</delimiter> <!-- to avoid collision with JS interpolation -->
+                    </delimiters>
                 </configuration>
                 <executions>
                     <execution>
