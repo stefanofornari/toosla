@@ -42,7 +42,7 @@ public class MainPageTest extends BugFreeWeb {
     public void version_displayed_in_main_page() throws Exception {
         loadPage("index.html");
         then(visible("#toosla")).isTrue();
-        then(text("#toosla #version")).isEqualTo("${project.version}");
+        then(text("#toosla #version")).isEqualTo("@{project.version}");
     }
 
     @Test

@@ -93,7 +93,7 @@ class TooslaController {
 
         this.$scope.moduleSettings = this.moduleSettings.bind(this);
         this.$scope.closeSettings = this.closeSettings.bind(this);
-        this.$scope.toogleFullscreen = this.moduleSettings.bind(this);
+        this.$scope.toogleFullscreen = this.toogleFullscreen.bind(this);
     }
 
     $onInit() {
@@ -175,7 +175,12 @@ class TooslaController {
     }
 
     toogleFullscreen(module) {
-        console.log("Toosla toogle fullscreen clicked for", module);
+        console.log("Toogle fullscreen for", module);
+        if (!document.fullscreenElement) {
+            document.getElementById(module).requestFullscreen();
+          } else {
+            document.getElementById(module).exitFullscreen();
+          }
     }
 
     closeSettings(save) {

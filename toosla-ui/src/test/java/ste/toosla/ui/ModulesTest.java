@@ -109,4 +109,13 @@ public class ModulesTest extends BugFreeWeb {
         click("#toosla-settings button.button.btn-done"); // pressing Done...
         then(exec("angular.element($('#demo1')).controller('demo1').lastSettingsEvent")).isEqualTo("close-1");
     }
+
+    @Test
+    public void toogle_fullscreen_expands_or_reduce_the_module() {
+        click("#demo1 .toosla-btn-fullscreen");
+        then(exec("document.fullscreenElement === document.getElementById('demo1')")).isNotNull();
+
+        click("#demo1 .toosla-btn-fullscreen");
+        then(exec("document.fullscreenElement")).isNull();
+    }
 }
