@@ -178,9 +178,9 @@ class TooslaController {
         console.log("Toogle fullscreen for", module);
         if (!document.fullscreenElement) {
             document.getElementById(module).requestFullscreen();
-          } else {
-            document.getElementById(module).exitFullscreen();
-          }
+        } else {
+            document.exitFullscreen();
+        }
     }
 
     closeSettings(save) {
