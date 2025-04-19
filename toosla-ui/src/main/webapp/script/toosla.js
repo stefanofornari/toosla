@@ -32,6 +32,7 @@ class Toosla {  // back to const ?
         console.debug("Toosla setup start");
 
         $("#version").text(this.version);
+        $("#screen").text(window.innerWidth + "x" + window.innerHeight);
         console.info(
             `%c Toosla %cv${this.version} %c${this.build}`,
             "color: white; font-weight: bold; background: blue",

@@ -1,0 +1,30 @@
+#things .list-view {
+    width: 100%;
+}
+
+#things th.column-done {
+    width: 50px;
+}
+
+#things th.column-bin {
+    width: 50px;
+}
+
+#things th.column-when {
+    width: 100px;
+}
+
+#things h4 {
+    margin: 0px;
+}
+
+.delete-confirm[open] {
+  position: fixed;
+  inset: 0 0 0 0;
+  margin: auto;
+  border: 0px;
+  background: #f9f9f9;
+}
+
+.delete-confirm .dialog-title {
+}

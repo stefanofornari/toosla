@@ -1,0 +1,68 @@
+<div id="things" class="card rounded">
+    <div class="card-header d-flex flex-justify-between flex-align-start">
+        <h3>Things</h3>
+        <div ng-show="$ctrl.editMode" class="d-flex">
+            <button class="light btn-done" ng-click="$ctrl.onCloseEditThing(true)">Done</button>
+            <button class="dark btn-cancel" ng-click="$ctrl.onCloseEditThing(false)">Cancel</button>
+        </div>
+    </div>
+
+    <div class="card-content d-flex">
+        <div class="list-view" ng-hide="$ctrl.editMode">
+            <table class="table striped compact">
+                <thead>
+                    <tr>
+                        <th class="column-done text-center"><div class="mif-checkmark"></div></th>
+                        <th class="column-title"><h4>Thing to do</h4></th>
+                        <th class="column-when"><h4>When</h4></th>
+                        <th class="text-center column-bin"><div class="button btn-add mif-plus" ng-click="$ctrl.onEditThing()"></div></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="t in $ctrl.things" ng-click="$ctrl.onEditThing(t)">
+                        <td><input type="checkbox"/></td>
+                        <td class="column-title"><div class="text-leader">{{t.title}}</div></td>
+                        <td><div class="text-leader">{{t.when}}</div></td>
+                        <td><div class="button btn-bin mif-bin" ng-click="$ctrl.onDeleteThing($event, t)"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div><!-- edit mode -->
+        <div class="container edit-view" ng-show="$ctrl.editMode">
+            <div class="d-flex flex-align-center">
+                <label>Done</label>
+                <input type="checkbox" name="status" data-role="switch"
+                       ng-model="$ctrl.selectedThing.status"
+                       ng-true-value="'done'" ng-false-value="'active'"
+                >
+            </div>
+            <textarea data-role="textarea" ng-model="$ctrl.selectedThing.text"></textarea>
+            <p>
+            <div class="row">
+                <div class="cell-md-3">
+                    <label>When</label>
+                    <input name="when" data-role="datepicker" data-value="{{$ctrl.selectedThing.when}}" data-locale="{{$ctrl.locale}}">
+                </div>
+                <div class="cell-md-9">
+                    <label>Do this thing before</label>
+                    <select data-role="select">
+                        <option></option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="application-action-bar"></div>
+    </div>
+    <dialog class="delete-confirm">
+        <div class="dialog-title">Do you really want to delete the thing below?</div>
+        <div class="dialog-content">
+            {{$ctrl.selectedThing.text}}
+        </div>
+        <div class="dialog-actions">
+            <button class="button light btn-confirm" ng-click="$ctrl.onDeleteThing($event, $ctrl.selectedThing);">Yes</button>
+            <button class="button dark primary btn-cancel" ng-click="$ctrl.onDeleteThing($event, $ctrl.selectedThing);" autofocus>No</button>
+        </div>
+    </dialog>
+</div>

@@ -40,7 +40,7 @@ public class CalcTest extends BugFreeWeb {
     }
 
     @Test
-    public void clock_displayed_on_page() {
+    public void calc_displayed_on_page() {
         then(visible("#calc")).isTrue();
         then((boolean)exec("toosla.getModuleController('calc') !== undefined;")).isTrue();
     }

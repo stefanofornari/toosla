@@ -8,6 +8,7 @@
         <link rel="stylesheet" href="metroui/5.1.0/icons.css">
         <link rel="stylesheet" href="modules/clock/clock.css">
         <link rel="stylesheet" href="modules/calc/calc.css">
+        <link rel="stylesheet" href="modules/things/things.css">
         <link rel="stylesheet" href="modules/toosla/toosla.css">
         <!-- TODO: to be added runtime -->
         <link rel="stylesheet" href="modules/console/console.css">
@@ -16,23 +17,10 @@
 
     <body>
         <div class="container">
-            <div class="grid" style="height: 500px">
-                <div class="row">
-                    <div class="cell-8 offset-2">
-                        <clock></clock>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="cell-4 offset-2">
-                        <calc></calc>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="cell-12">
-                        <console></console>
-                    </div>
-                </div>
-            </div>
+            <clock></clock>
+            <things></things>
+            <calc></calc>
+            <console></console>
         </div> <!-- container -->
         <toosla></toosla>
 
@@ -42,6 +30,7 @@
         <!-- TODO: to be added runtime -->
         <script src="modules/clock/clock.js"></script>
         <script src="modules/calc/calc.js"></script>
+        <script src="modules/things/things.js"></script>
         <script src="modules/console/console.js"></script>
         <!-- -->
         <script src="script/toosla-ng.js"></script>

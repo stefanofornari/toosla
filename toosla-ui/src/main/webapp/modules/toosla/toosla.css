@@ -1,8 +1,23 @@
-#toosla-settings {
-    width: 300px;
+:root {
+    --card-border-radius: 0px;
+    --button-border-radius: 0px;
+    --input-border-radius: 0px;
+    --select-border-radius: 0px;
+    --command-button-border-radius: 0px;
+    --info-box-border-radius: 0px;
+    --info-button-border-radius: 0px;
+    --listview-item-border-radius: 0px;
+    --table-border-radius: 0px;
+    --table-inspector-border-radius: 0px;
+    --split-button-border-radius: 0px;
+    --textarea-border-radius: 0px;
+    --datepicker-border-radius: 0px;
+    --tile-border-radius: 0px;
+    --toast-border-radius: 0px;
+    --tool-button-border-radius: 0px;
+    --window-border-radius: 0px;
 }
 
-#toosla-settings button {
-    border-radius: 0;
-    margine-right: 2px;
+#toosla-settings {
+    width: 300px;
 }
