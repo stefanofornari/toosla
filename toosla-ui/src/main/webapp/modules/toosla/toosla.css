@@ -16,8 +16,14 @@
     --toast-border-radius: 0px;
     --tool-button-border-radius: 0px;
     --window-border-radius: 0px;
+    
+    --textarea-font-size: 20px
 }
 
 #toosla-settings {
     width: 300px;
+}
+
+.card {
+    font-size: 20px;
 }

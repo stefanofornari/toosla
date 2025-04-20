@@ -36,7 +36,6 @@ class ThingsController {
         //
         // Read items from local storage
         //
-        console.debug(localStorage.getItem('toosla.things.things'));
         this.loadThings();
 
         if (!this.things) {
@@ -49,7 +48,6 @@ class ThingsController {
                 status: "active",
                 things: []
             }];
-            this.makeThings(this.things);
         }
     }
 
@@ -65,7 +63,6 @@ class ThingsController {
     // if item is undefined, add a new thing, otherwise edit the existing one
     //
     onEditThing(item) {
-        console.debug("item clicked", JSON.stringify(item));
         if (item) {
             this.selectedThing = angular.copy(item);
             this.originalThing = item;
@@ -77,8 +74,6 @@ class ThingsController {
     }
 
     onDeleteThing(event, thing) {
-        console.debug("delete clicked", JSON.stringify(event), JSON.stringify(thing));
-        
         if (event.target.matches(".btn-bin")) {
             //
             // Show the confirmation dialog and return
@@ -106,8 +101,6 @@ class ThingsController {
     }
 
     onCloseEditThing(save) {
-        console.debug("close clicked", save);
-
         if (save) {
             this.selectedThing.when = Metro.getPlugin($('#things .edit-view input[name=when]')[0], "datepicker").val();
             if (this.originalThing) {
@@ -120,7 +113,6 @@ class ThingsController {
                 // it's a new thing
                 //
                 this.selectedThing.things = [];
-                this.makeThings([this.selectedThing]);
                 this.things.push(this.selectedThing);
             }
 
@@ -130,33 +122,11 @@ class ThingsController {
     }
     
     loadThings() {
-        const things = JSON.parse(localStorage.getItem('toosla.things.things'));
-        this.makeThings(things);
-        this.things = things;
+        this.things = JSON.parse(localStorage.getItem('toosla.things.things'));
     }
     
-    makeThings(things) {
-        if (!things || things === null) {
-            return;
-        }
-        
-        for (const t of things) {
-            Object.defineProperty(t, "title", {
-                get() {
-                    if (!this.text) {
-                        return "";
-                    }
-                    let title = this.text;
-                    const pos = title.indexOf("\n");
-                    if (pos > 0) {
-                        title = title.slice(0, pos);
-                    }
-                    
-                    return (title.length > 50) ?
-                        title.slice(0, 49) + '…' : title;
-                }
-            });
-        }
+    title(thing) {
+        return Utils.abbr(thing.text);
     }
 }
 

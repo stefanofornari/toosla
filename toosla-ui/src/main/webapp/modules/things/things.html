@@ -19,9 +19,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr ng-repeat="t in $ctrl.things" ng-click="$ctrl.onEditThing(t)">
-                        <td><input type="checkbox"/></td>
-                        <td class="column-title"><div class="text-leader">{{t.title}}</div></td>
+                    <tr ng-repeat="t in $ctrl.things">
+                        <td class="text-center align-center"><input type="checkbox" name="status" class="va-middle" ng-model="t.status" ng-true-value="'done'" ng-false-value="'active'"/></td>
+                        <td class="column-title" ng-click="$ctrl.onEditThing(t);"><div class="text-leader">{{$ctrl.title(t)}}</div></td>
                         <td><div class="text-leader">{{t.when}}</div></td>
                         <td><div class="button btn-bin mif-bin" ng-click="$ctrl.onDeleteThing($event, t)"></div></td>
                     </tr>

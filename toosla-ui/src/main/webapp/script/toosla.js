@@ -192,3 +192,17 @@ class TooslaController {
 //  const { TaskTimer } = tasktimer;
 const toosla = new Toosla();
 
+class Utils {
+    static abbr(text) {
+        if (!text) {
+            return "";
+        }
+        const pos = text.indexOf("\n");
+        if (pos > 0) {
+            text = text.slice(0, pos);
+        }
+
+        return (text.length > 50) ?
+            text.slice(0, 49) + '…' : text;
+    }
+}

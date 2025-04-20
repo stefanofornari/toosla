@@ -63,7 +63,7 @@ public class ThingsTest extends BugFreeWeb {
 
     @Test
     public void click_on_edit_shows_the_edit_view() throws Exception {
-        exec("$('#things tr')[1].click()");
+        exec("$('#things tr')[1].children[1].click()");
         then(visible("#things div.list-view")).isFalse();
         then(visible("#things .card-header .btn-done")).isTrue();
         then(visible("#things .card-header .btn-cancel")).isTrue();
@@ -78,7 +78,7 @@ public class ThingsTest extends BugFreeWeb {
 
     @Test
     public void click_on_done_or_cancel_hides_edit_mode() throws Exception {
-        exec("$('#things tr')[1].click()");  // edit mode
+        exec("$('#things tr')[1].children[1].click()");  // edit mode
 
         exec("$('#things .btn-done').click();");
         then(visible("#things div.list-view")).isTrue();
@@ -86,7 +86,7 @@ public class ThingsTest extends BugFreeWeb {
         then(visible("#things .card-header .btn-cancel")).isFalse();
         then(visible("#things div.edit-view")).isFalse();
 
-        exec("$('#things tr')[1].click()");  // edit mode
+        exec("$('#things tr')[1].children[1].click()");  // edit mode
 
         exec("$('#things .btn-cancel').click();");
         then(visible("#things div.list-view")).isTrue();
@@ -108,7 +108,7 @@ public class ThingsTest extends BugFreeWeb {
 
     @Test
     public void edit_shows_current_thing_values() throws Exception {
-        exec("$('#things tr')[1].click()");  // edit mode
+        exec("$('#things tr')[1].children[1].click()");  // edit mode
 
         final String TODAY = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyddMMMM"));
         then((Boolean)exec("$('#things .edit-view input[name=status]')[0].checked")).isFalse();
@@ -126,7 +126,7 @@ public class ThingsTest extends BugFreeWeb {
             t.text = 'another text';
             t.when = '2011-10-05';
             t.status = "done";
-            $('#things tr')[1].click();
+            $('#things tr')[1].children[1].click();
         """);
         then(exec("$('#things .edit-view input[name=status]:checked').length > 0"));
         then(val("#things .edit-view textarea")).isEqualTo("another text");
@@ -138,7 +138,7 @@ public class ThingsTest extends BugFreeWeb {
     @Test
     public void done_saves_changes() {
         exec("""
-            $('#things tr')[1].click();  // edit mode
+            $('#things tr')[1].children[1].click();  // edit mode
 
             angular.element($('#things input[name=status]'))[0].click();
             angular.element($('#things textarea')).val('hello\\nworld');
@@ -170,7 +170,7 @@ public class ThingsTest extends BugFreeWeb {
     @Test
     public void cancel_discard_changes() {
         exec("""
-            $('#things tr')[1].click();  // edit mode
+            $('#things tr')[1].children[1].click();  // edit mode
 
             angular.element($('#things input[name=status]'))[0].click();
             angular.element($('#things textarea')).val('hello\\nworld');
@@ -210,7 +210,7 @@ public class ThingsTest extends BugFreeWeb {
         exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
 
         loadPage("index.html"); // reload the page after saving the things
-        exec("$('#things tr')[1].click();");
+        exec("$('#things tr')[1].children[1].click();");
 
         then((Boolean)exec("$('#things .edit-view input[name=status]')[0].checked")).isTrue();
         then(val("#things .edit-view textarea")).isEqualTo("first thing");
@@ -218,7 +218,7 @@ public class ThingsTest extends BugFreeWeb {
         then(text("#things .edit-view .day")).isEqualTo("1");
         then(text("#things .edit-view .month")).isEqualTo("January");
 
-        click("#things .btn-cancel"); exec("$('#things tr')[2].click();");
+        click("#things .btn-cancel"); exec("$('#things tr')[2].children[1].click();");
 
         then((Boolean)exec("$('#things .edit-view input[name=status]')[0].checked")).isFalse();
         then(val("#things .edit-view textarea")).isEqualTo("next thing");
@@ -333,5 +333,40 @@ public class ThingsTest extends BugFreeWeb {
                 .isEqualTo("first line");
         then(exec("$('#things tr')[2].children[1].innerText.trim()"))
                 .isEqualTo("very long description in the first line shall be …");
+    }
+    
+    @Test
+    public void toogle_status() throws Exception {
+        final String THINGS = """
+        [
+            {
+                "status": "done",
+                "text": "first line\\\\nsecond line\\\\nthird line",
+                "when": "2010-01-01",
+                "things": []
+            },
+            {
+                "status": "active",
+                "text": "very long description in the first line shall be cut with ellips",
+                "when": "2020-02-02",
+                "things": []
+            }
+        ]
+        """;
+        exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
+        loadPage("index.html"); // reload the page after saving the things
+        
+        then((Boolean)exec("$('#things input[name=status]')[0].checked")).isTrue();
+        then((Boolean)exec("$('#things input[name=status]')[1].checked")).isFalse();
+        
+        click("#things input[name=status]')[0]");
+        click("#things input[name=status]')[1]");
+        
+        then((Boolean)exec("$('#things input[name=status]')[0].checked")).isTrue();
+        then((Boolean)exec("$('#things input[name=status]')[1].checked")).isFalse();
+        
+        JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
+        JSONAssertions.then(things.getJSONObject(0)).containsEntry("status", "done");
+        JSONAssertions.then(things.getJSONObject(1)).containsEntry("status", "active");
     }
 }
