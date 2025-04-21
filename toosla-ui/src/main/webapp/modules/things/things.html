@@ -19,7 +19,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr ng-repeat="t in $ctrl.things">
+                    <tr ng-repeat="t in $ctrl.things track by $index">
                         <td class="text-center align-center"><input type="checkbox" name="status" class="va-middle" ng-model="t.status" ng-true-value="'done'" ng-false-value="'active'"/></td>
                         <td class="column-title" ng-click="$ctrl.onEditThing(t);"><div class="text-leader">{{$ctrl.title(t)}}</div></td>
                         <td><div class="text-leader">{{t.when}}</div></td>
