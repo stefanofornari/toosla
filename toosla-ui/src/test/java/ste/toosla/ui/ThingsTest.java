@@ -140,7 +140,7 @@ public class ThingsTest extends BugFreeWeb {
         exec("""
             $('#things tr')[1].children[1].click();  // edit mode
 
-            angular.element($('#things input[name=status]'))[0].click();
+            angular.element($('#things .edit-view input[name=status]'))[0].click();
             angular.element($('#things textarea')).val('hello\\nworld');
             $('#things textarea').trigger('input');
             Metro.getPlugin($('#things .edit-view input[name=when]')[0], "datepicker").val('2020-01-01T12:38:09.589Z');
@@ -172,7 +172,7 @@ public class ThingsTest extends BugFreeWeb {
         exec("""
             $('#things tr')[1].children[1].click();  // edit mode
 
-            angular.element($('#things input[name=status]'))[0].click();
+            angular.element($('#things .edit-view input[name=status]'))[0].click();
             angular.element($('#things textarea')).val('hello\\nworld');
             $('#things textarea').trigger('input');
             Metro.getPlugin($('#things .edit-view input[name=when]')[0], "datepicker").val('2020-01-01T12:38:09.589Z');
@@ -238,7 +238,7 @@ public class ThingsTest extends BugFreeWeb {
         // the local storage
         //
         exec("""
-            angular.element($('#things input[name=status]'))[0].click();
+            angular.element($('#things .edit-view input[name=status]'))[0].click();
             angular.element($('#things textarea')).val('hello\\nworld');
             $('#things textarea').trigger('input');
             Metro.getPlugin($('#things .edit-view input[name=when]')[0], "datepicker").val('2020-01-01T12:38:09.589Z');
@@ -332,7 +332,7 @@ public class ThingsTest extends BugFreeWeb {
         then(exec("$('#things tr')[1].children[1].innerText.trim()"))
                 .isEqualTo("first line");
         then(exec("$('#things tr')[2].children[1].innerText.trim()"))
-                .isEqualTo("very long description in the first line shall be …");
+                .isEqualTo("very long description in th…");
     }
     
     @Test
