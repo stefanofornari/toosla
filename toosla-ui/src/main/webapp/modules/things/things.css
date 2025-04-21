@@ -1,5 +1,7 @@
 #things .list-view {
     width: 100%;
+    height: 200px;
+    overflow: scroll;
 }
 
 #things th.column-done {
