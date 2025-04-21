@@ -193,6 +193,8 @@ class TooslaController {
 const toosla = new Toosla();
 
 class Utils {
+    static #MAX_TEXT_LENGTH = 28
+    
     static abbr(text) {
         if (!text) {
             return "";
@@ -202,7 +204,7 @@ class Utils {
             text = text.slice(0, pos);
         }
 
-        return (text.length > 50) ?
-            text.slice(0, 49) + '…' : text;
+        return (text.length > Utils.#MAX_TEXT_LENGTH) ?
+            text.slice(0, Utils.#MAX_TEXT_LENGTH-1) + '…' : text;
     }
 }
