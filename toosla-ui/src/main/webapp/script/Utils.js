@@ -19,16 +19,19 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-//import { PasswordManager } from "./PasswordManager";
+export class Utils {
+    static #MAX_TEXT_LENGTH = 28
 
-const tooslaModule = angular.module('Toosla', []);
+    static abbr(text) {
+        if (!text) {
+            return "";
+        }
+        const pos = text.indexOf("\n");
+        if (pos > 0) {
+            text = text.slice(0, pos);
+        }
 
-for (const [name, controller] of toosla.modules()) {
-    console.debug("adding angular component", name, controller);
-    tooslaModule.component(name, {
-        templateUrl: `modules/${name}/${name}.html`,
-        controller: controller
-    });
-};
-
-//tooslaModule.factory('passwd', PasswordManager);
+        return (text.length > Utils.#MAX_TEXT_LENGTH) ?
+            text.slice(0, Utils.#MAX_TEXT_LENGTH-1) + '…' : text;
+    }
+}

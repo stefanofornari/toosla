@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="modules/clock/clock.css">
         <link rel="stylesheet" href="modules/calc/calc.css">
         <link rel="stylesheet" href="modules/things/things.css">
+        <!--link rel="stylesheet" href="modules/zefiro/zefiro.css"-->
         <link rel="stylesheet" href="modules/toosla/toosla.css">
         <!-- TODO: to be added runtime -->
         <link rel="stylesheet" href="modules/console/console.css">
@@ -24,23 +25,25 @@
                 </div>
                 <div class="cell-md-4">
                     <calc></calc>
+                    <zefiro></zefiro>
                 </div>
             </div> <!-- row1 -->
             <div class="row">
-                <console></console>
+                <!--console></console-->
             </div>
         </div> <!-- container -->
         <toosla></toosla>
 
         <script src="metroui/5.1.0/metro.js"></script>
         <script src="angularjs/1.8.2/angular.min.js"></script>
-        <script src="script/toosla.js"></script>
+        <script src="script/toosla.js" type="module"></script>
         <!-- TODO: to be added runtime -->
-        <script src="modules/clock/clock.js"></script>
-        <script src="modules/calc/calc.js"></script>
-        <script src="modules/things/things.js"></script>
-        <script src="modules/console/console.js"></script>
+        <script src="modules/clock/clock.js" type="module"></script>
+        <script src="modules/calc/calc.js" type="module"></script>
+        <script src="modules/things/things.js" type="module"></script>
+        <script src="modules/zefiro/zefiro.js" type="module"></script>
+        <!--script src="modules/console/console.js" type="module"></script-->
         <!-- -->
-        <script src="script/toosla-ng.js"></script>
+        <script src="script/toosla-ng.js" type="module"></script>
     </body>
 </html>

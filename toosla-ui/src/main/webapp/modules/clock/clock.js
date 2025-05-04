@@ -21,7 +21,7 @@
 
 const CONFIG_CLOCK_TIMEZONE = "toosla.clock.timezone";
 
-class ClockController {
+export class ClockController {
 
     currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;  // default timzone for time
     todayDate = ""; // today in the format specified by dateFormat

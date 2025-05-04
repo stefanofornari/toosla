@@ -19,7 +19,7 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-class CalcController {
+export class CalcController {
 
     expression = "";
     result = "0";

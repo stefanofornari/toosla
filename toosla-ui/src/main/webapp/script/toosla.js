@@ -19,10 +19,12 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
+//import { PasswordManager } from "./PasswordManager.js";
+
 //
 // TODO: move all methods manipulating the dom into the controller
 //
-class Toosla {  // back to const ?
+export class Toosla {  // back to const ?
     version = "@{project.version}";
     build = "@{buildTimestamp}";
 
@@ -59,13 +61,6 @@ class Toosla {  // back to const ?
              console.info("Switching Toosla to light mode");
             $("html").removeClass("dark-side");
         }
-    };
-
-    checkFeatures() {
-        console.info("Browser languages:", navigator.languages);
-        console.info("Full screen support:", document.fullscreenEnabled);
-        console.info("Dark mode: ", window.matchMedia);
-        console.info("Local Storage Access: ", window.localStorage.length === 0);
     };
 
     registerModule(name, controller) {
@@ -112,7 +107,7 @@ class TooslaController {
             // 2. move the settings div into #toosla-settings
             //
 
-            for ([name, controller] of toosla.modules()) {
+            for (const [name, controller] of toosla.modules()) {
                 const actionBar = $(`#${name} .application-action-bar`);
                 const settingsPanel = $(`#${name} .settings`);
 
@@ -187,24 +182,15 @@ class TooslaController {
     closeSettings(save) {
         this.moduleSettings($("#toosla-settings").attr("module"), "close", save ? 1 : 0);
     }
+
+    checkFeatures() {
+        console.info("Browser languages:", navigator.languages);
+        console.info("Full screen support:", document.fullscreenEnabled);
+        console.info("Dark mode: ", window.matchMedia);
+        console.info("Local storage: ", window.localStorage);
+        console.info("Credential container: ", navigator.credentials);
+    }
 }
 
 //  const { TaskTimer } = tasktimer;
-const toosla = new Toosla();
-
-class Utils {
-    static #MAX_TEXT_LENGTH = 28
-    
-    static abbr(text) {
-        if (!text) {
-            return "";
-        }
-        const pos = text.indexOf("\n");
-        if (pos > 0) {
-            text = text.slice(0, pos);
-        }
-
-        return (text.length > Utils.#MAX_TEXT_LENGTH) ?
-            text.slice(0, Utils.#MAX_TEXT_LENGTH-1) + '…' : text;
-    }
-}
+window.toosla = new Toosla();

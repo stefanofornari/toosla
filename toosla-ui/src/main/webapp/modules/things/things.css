@@ -21,12 +21,14 @@
 }
 
 .delete-confirm[open] {
-  position: fixed;
-  inset: 0 0 0 0;
-  margin: auto;
-  border: 0px;
-  background: #f9f9f9;
+    position: fixed;
+    inset: 0 0 0 0;
+    margin: auto;
+    border: 0px;
+    background: #f9f9f9;
 }
 
 .delete-confirm .dialog-title {
+    background-color: var(--card-header-background);
+    color: var(--card-header-color);
 }

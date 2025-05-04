@@ -19,7 +19,9 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-class ThingsController {
+import { Utils } from "../../script/Utils.js";
+
+export class ThingsController {
 
     static NAME = "Things";
 
@@ -42,9 +44,10 @@ class ThingsController {
             //
             // Create the default item
             //
+            const NOW = new Date();
             this.things = [{
                 text: "Tap to edit your first thing",
-                when: new Date().toISOString().substring(0, 10),
+                when: `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2, '0')}-${String(NOW.getDate()).padStart(2, '0')}`,
                 status: "active",
                 things: []
             }];
@@ -67,7 +70,10 @@ class ThingsController {
             this.selectedThing = angular.copy(item);
             this.originalThing = item;
         } else {
-            this.selectedThing = {};
+            const NOW = new Date();
+            this.selectedThing = {
+                when: `${NOW.getFullYear()}-${NOW.getMonth()}-${NOW.getDate()}`
+            };
             this.originalThing = null;
         }
         this.editMode = true;
@@ -81,7 +87,7 @@ class ThingsController {
             this.selectedThing = thing;
 
             $('#things dialog.delete-confirm')[0].showModal();
-            
+
             return;
         } else if (event.target.matches(".btn-confirm")) {
             //
@@ -95,7 +101,7 @@ class ThingsController {
 
             localStorage.setItem("toosla.things.things", JSON.stringify(this.things));
         }
-        
+
         this.selectedThing = null;
         $('#things dialog.delete-confirm')[0].close();
     }
@@ -120,11 +126,11 @@ class ThingsController {
         }
         this.editMode = false;
     }
-    
+
     loadThings() {
         this.things = JSON.parse(localStorage.getItem('toosla.things.things'));
     }
-    
+
     title(thing) {
         return Utils.abbr(thing.text);
     }
