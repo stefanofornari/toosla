@@ -29,12 +29,11 @@ import org.json.JSONArray;
 import org.junit.Before;
 import org.junit.Test;
 import ste.xtest.json.api.JSONAssertions;
-import ste.xtest.web.BugFreeWeb;
 
 /**
  *
  */
-public class ThingsTest extends BugFreeWeb {
+public class ThingsTest extends TooslaTestBase {
 
     @Before
     public void before() throws Exception {
@@ -253,14 +252,14 @@ public class ThingsTest extends BugFreeWeb {
             .containsEntry("text", "hello\nworld")
             .containsEntry("when", "2020-01-01");
     }
-    
+
     @Test
     public void delete_a_thing_shows_confirmation_dialog() throws Exception {
         exec("$('#things .btn-bin')[0].click()");  // delete first element
         then(visible("#things dialog.delete-confirm")).isTrue();
         then(text("#things dialog .dialog-content").trim()).isEqualTo("Tap to edit your first thing");
     }
-    
+
     @Test
     public void delete_or_cancel_a_thing() throws Exception {
         final String THINGS = """
@@ -283,31 +282,31 @@ public class ThingsTest extends BugFreeWeb {
         exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
 
         loadPage("index.html"); // reload the page after saving the things
-        
+
         exec("$('#things .btn-bin')[1].click()");  // delete second element
         click("#things .delete-confirm .btn-cancel"); // do not confirm
         then(visible("#things dialog.delete-confirm")).isFalse();
-        
+
         then(exec("JSON.parse(localStorage.getItem('toosla.things.things')).length ")).isEqualTo(2);
         JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
         JSONAssertions.then(things).hasSize(2);
-        
+
         exec("$('#things .btn-bin')[1].click()");  // delete second element
         click("#things .delete-confirm .btn-confirm"); // confirm
         then(visible("#things dialog.delete-confirm")).isFalse();
-        
+
         then(exec("JSON.parse(localStorage.getItem('toosla.things.things')).length ")).isEqualTo(1);
         things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
         JSONAssertions.then(things).hasSize(1);
         JSONAssertions.then(things.getJSONObject(0))
             .containsEntry("status", "done");
-        
+
         exec("$('#things .btn-bin')[0].click()");  // delete second element
         click("#things .delete-confirm .btn-confirm"); // confirm
 
         then(exec("JSON.parse(localStorage.getItem('toosla.things.things')).length ")).isEqualTo(0);
     }
-    
+
     @Test
     public void show_max_50_chars_of_the_first_line() throws Exception {
         final String THINGS = """
@@ -328,13 +327,13 @@ public class ThingsTest extends BugFreeWeb {
         """;
         exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
         loadPage("index.html"); // reload the page after saving the things
-        
+
         then(exec("$('#things tr')[1].children[1].innerText.trim()"))
                 .isEqualTo("first line");
         then(exec("$('#things tr')[2].children[1].innerText.trim()"))
                 .isEqualTo("very long description in th…");
     }
-    
+
     @Test
     public void toogle_status() throws Exception {
         final String THINGS = """
@@ -355,16 +354,16 @@ public class ThingsTest extends BugFreeWeb {
         """;
         exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
         loadPage("index.html"); // reload the page after saving the things
-        
+
         then((Boolean)exec("$('#things input[name=status]')[0].checked")).isTrue();
         then((Boolean)exec("$('#things input[name=status]')[1].checked")).isFalse();
-        
+
         click("#things input[name=status]')[0]");
         click("#things input[name=status]')[1]");
-        
+
         then((Boolean)exec("$('#things input[name=status]')[0].checked")).isTrue();
         then((Boolean)exec("$('#things input[name=status]')[1].checked")).isFalse();
-        
+
         JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
         JSONAssertions.then(things.getJSONObject(0)).containsEntry("status", "done");
         JSONAssertions.then(things.getJSONObject(1)).containsEntry("status", "active");

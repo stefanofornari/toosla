@@ -25,12 +25,11 @@ import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
 import org.junit.Before;
 import org.junit.Test;
-import ste.xtest.web.BugFreeWeb;
 
 /**
  *
  */
-public class CalcTest extends BugFreeWeb {
+public class CalcTest extends TooslaTestBase {
 
     @Before
     public void before() throws Exception {

@@ -21,12 +21,10 @@
 
 //import { PasswordManager } from "./PasswordManager.js";
 
-//
-// TODO: move all methods manipulating the dom into the controller
-//
-export class Toosla {  // back to const ?
+export class Toosla {
     version = "@{project.version}";
     build = "@{buildTimestamp}";
+    ready = false;
 
     #modules = new Map();
 
@@ -47,8 +45,6 @@ export class Toosla {  // back to const ?
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             self.darkMode(event.matches);
         });
-
-        console.debug("Toosla setup end");
     };
 
     darkMode(dark) {

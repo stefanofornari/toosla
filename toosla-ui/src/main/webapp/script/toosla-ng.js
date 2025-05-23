@@ -20,15 +20,14 @@
  */
 
 //import { PasswordManager } from "./PasswordManager";
-
 const tooslaModule = angular.module('Toosla', []);
 
 for (const [name, controller] of toosla.modules()) {
-    console.debug("adding angular component", name, controller);
     tooslaModule.component(name, {
         templateUrl: `modules/${name}/${name}.html`,
         controller: controller
     });
 };
 
+toosla.ready = true;
 //tooslaModule.factory('passwd', PasswordManager);

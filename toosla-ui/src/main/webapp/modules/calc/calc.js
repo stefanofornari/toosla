@@ -124,7 +124,7 @@ export class CalcController {
 
         //
         // Make backspace clickable (use of $timeout is due to the element
-        // being rendered by the metro framework at a later stage
+        // being rendered by the metro framework at a later stage)
         //
         this.$timeout(() => {
             const bs = root.getElementsByClassName("mif-arrow-left");

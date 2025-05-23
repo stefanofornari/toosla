@@ -34,4 +34,44 @@ export class Utils {
         return (text.length > Utils.#MAX_TEXT_LENGTH) ?
             text.slice(0, Utils.#MAX_TEXT_LENGTH-1) + '…' : text;
     }
+
+    /**
+     * Checks if the provided value is not defined or null or empty or just blanks
+     *
+     * @param name name of the argument/parameter/value; it iwll be used in
+     *                 the exception
+     * @param value the value to check
+     *
+     *
+     * @throws {type} an exception if the provided value is not define, null
+     *                empty or only blanks
+     */
+    static checkValue(name, value) {
+        Utils.checkObject(name, value);
+        if (
+            !value.length ||
+            !value.trim().length
+           ) {
+           throw new Error(`${name} can not be null or empty`);
+        }
+    }
+
+    /**
+     * Checks if the provided object is not defined or null
+     *
+     * @param name name of the argument/parameter/value; it iwll be used in
+     *                 the exception
+     * @param value the value to check
+     *
+     *
+     * @throws {type} an exception if the provided value is not define or null
+     */
+    static checkObject(name, value) {
+        if (
+            (value === undefined) ||
+            (value === null)
+        ) {
+           throw new Error(`${name} can not be null or empty`);
+        }
+    }
 }

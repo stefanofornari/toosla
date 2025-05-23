@@ -21,7 +21,7 @@
 
 const CONSOLE = window.console;
 
-class ConsoleController {
+export class ConsoleController {
     $onInit() {
         window.console = this;
     };

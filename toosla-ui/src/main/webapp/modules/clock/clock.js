@@ -19,7 +19,7 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-const CONFIG_CLOCK_TIMEZONE = "toosla.clock.timezone";
+export const CONFIG_CLOCK_TIMEZONE = "toosla.clock.timezone";
 
 export class ClockController {
 
