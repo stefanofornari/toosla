@@ -21,21 +21,23 @@
 import { Utils } from "./Utils.js";
 
 export class PasswordManager {
+    static ENCODER = new TextEncoder();
+    static DECODER = new TextDecoder();
+
     constructor() {
     }
 
     async saveSecret(pin, secret) {
         Utils.checkValue("pin", pin);
         Utils.checkObject("secret", secret);
-        Utils.checkValue("secret.key", secret.key);
+        Utils.checkValue("secret.label", secret.label);
         Utils.checkValue("secret.data", secret.data);
 
         const iv = crypto.getRandomValues(new Uint8Array(12));
 
-        const encoder = new TextEncoder();
         const key = await crypto.subtle.importKey(
             "raw",
-            encoder.encode(pin),
+            PasswordManager.ENCODER.encode(pin),
             { name: "AES-GCM" },
             false,
             ["encrypt", "decrypt"]
@@ -44,11 +46,31 @@ export class PasswordManager {
         const encrypted = new Uint8Array(await crypto.subtle.encrypt(
             { name: "AES-GCM", iv: iv },
             key,
-            encoder.encode(secret.data)
+            PasswordManager.ENCODER.encode(secret.data)
         ));
 
-        localStorage.setItem("toosla.passwd.secret." + secret.key, JSON.stringify({iv: [...iv], secret: [...encrypted]}));
+        localStorage.setItem("toosla.passwd.secret." + secret.label, JSON.stringify({iv: [...iv], secret: [...encrypted]}));
+    }
+
+    async loadSecret(pin, label) {
+        const secretPlain = localStorage.getItem("toosla.passwd.secret." + label);
+        const secret = JSON.parse(secretPlain);
+
+        const key = await crypto.subtle.importKey(
+            "raw",
+            PasswordManager.ENCODER.encode(pin),
+            { name: "AES-GCM" },
+            false,
+            ["encrypt", "decrypt"]
+        );
+
+        const clearArray = new Uint8Array(await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: secret.iv },
+            key,
+            secret.secret
+        ));
+
+        return PasswordManager.DECODER.decode(clearArray);
     }
 
 }
-console.info("PasswordManager done!");

@@ -24,6 +24,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
+import ste.xtest.concurrent.WaitFor;
 import ste.xtest.json.api.JSONAssertions;
 
 /**
@@ -42,16 +43,16 @@ public class PasswordManagerTest extends TooslaTestBase {
     public void save_secret() throws Exception {
         final int n = (int)exec("localStorage.length");
 
-        exec("passwd.saveSecret('1234', { key:'key1', data: 'hello world'});");
+        exec("passwd.saveSecret('1234', { label:'label1', data: 'hello world'});");
 
         then(exec("localStorage.length")).isEqualTo(n+1);
-        JSONObject secret1 = new JSONObject((String)exec("localStorage.getItem('toosla.passwd.secret.key1');"));
+        JSONObject secret1 = new JSONObject((String)exec("localStorage.getItem('toosla.passwd.secret.label1');"));
         JSONAssertions.then(secret1).contains("iv").contains("secret");
 
-        exec("passwd.saveSecret('5678', { key:'key2', data: 'hello world'});");
+        exec("passwd.saveSecret('5678', { label:'label2', data: 'hello world'});");
 
         then(exec("localStorage.length")).isEqualTo(n+2);
-        JSONObject secret2 = new JSONObject((String)exec("localStorage.getItem('toosla.passwd.secret.key2');"));
+        JSONObject secret2 = new JSONObject((String)exec("localStorage.getItem('toosla.passwd.secret.label2');"));
         JSONAssertions.then(secret2).contains("iv").contains("secret");
 
         //
@@ -72,7 +73,7 @@ public class PasswordManagerTest extends TooslaTestBase {
         for (final String VALUE: INVALID) {
             exec(String.format("""
                 e = "";
-                passwd.saveSecret(%s, { key:'key1', data: 'hello world'})
+                passwd.saveSecret(%s, { label:'key1', data: 'hello world'})
                     .catch((error) => {
                         e = error.toString();
                 });
@@ -83,12 +84,12 @@ public class PasswordManagerTest extends TooslaTestBase {
         for (final String VALUE: INVALID) {
             exec(String.format("""
                 e = "";
-                passwd.saveSecret("1234", { key:%s, data: 'hello world'})
+                passwd.saveSecret("1234", { label:%s, data: 'hello world'})
                     .catch((error) => {
                         e = error.toString();
                 });
             """, VALUE));
-            then(exec("e")).isEqualTo("Error: secret.key can not be null or empty");
+            then(exec("e")).isEqualTo("Error: secret.label can not be null or empty");
         }
         exec("""
             e = "";
@@ -97,12 +98,12 @@ public class PasswordManagerTest extends TooslaTestBase {
                     e = error.toString();
             });
         """);
-        then(exec("e")).isEqualTo("Error: secret.key can not be null or empty");
+        then(exec("e")).isEqualTo("Error: secret.label can not be null or empty");
 
         for (final String VALUE: INVALID) {
             exec(String.format("""
                 e = "";
-                passwd.saveSecret("1234", { key: "key1", data: %s})
+                passwd.saveSecret("1234", { label: "key1", data: %s})
                     .catch((error) => {
                         e = error.toString();
                 });
@@ -111,7 +112,7 @@ public class PasswordManagerTest extends TooslaTestBase {
         }
         exec("""
             e = "";
-            passwd.saveSecret("1234", { key: "key1" })
+            passwd.saveSecret("1234", { label: "key1" })
                 .catch((error) => {
                     e = error.toString();
             });
@@ -131,7 +132,37 @@ public class PasswordManagerTest extends TooslaTestBase {
     }
 
     @Test
-    public void load_secret() {
+    public void load_secret() throws Exception {
+        exec("""
+            secrets = [];
+            Promise.all([
+                passwd.saveSecret('1234', { label:'label1', data: 'hello world' }),
+                passwd.saveSecret('5678', { label:'label2', data: 'hello universe' })
+            ]).then((values) => {
+                secrets.push(...values) ;
+            });
+        """);
+
+        new WaitFor(500, () -> (Boolean)exec("(secrets && secrets.length == 2)"));
+
+        exec("""
+            secrets = [];
+            Promise.all([
+                passwd.loadSecret('1234', 'label1'),
+                passwd.loadSecret('1234', 'label2'),
+                passwd.loadSecret('5678', 'label2'),
+                passwd.loadSecret('1234', 'label1')
+            ]).then((values) => {
+                secrets.push(...values);
+            });
+        """);
+
+        new WaitFor(500, () -> (Boolean)exec("(secrets && secrets.length == 4)"));
+
+        then((String)exec("secrets[0]")).isEqualTo("hello world");
+        then((String)exec("secrets[1]")).isNotEqualTo("hello world");
+        then((String)exec("secrets[2]")).isEqualTo("hello universe");
+        then((String)exec("secrets[3]")).isNotEqualTo("hello universe");
     }
 
     @Test
@@ -174,12 +205,12 @@ class PasswordManager {
         try {
             let encrypted = await encryptText(pin, secret.secret); // {iv: <iv>, data: <encrypted data>}
             localStorage.setItem("toosla.passwd.secrets", {
-                key: secret.key,
+                label: secret.label,
                 iv: encrypted.iv,
                 data: encrypted.data
             });
         } catch (error) {
-            console.error("Error encrypting secret", secret.key, error);
+            console.error("Error encrypting secret", secret.label, error);
             console.error(error.stack);
         }
     }
@@ -256,12 +287,12 @@ class PasswordManager {
         try {
             let encrypted = await this.encryptText(pin, secret.secret); // {iv: <iv>, data: <encrypted data>}
             localStorage.setItem("toosla.passwd.secrets", {
-                key: secret.key,
+                label: secret.label,
                 iv: encrypted.iv,
                 data: encrypted.data
             });
         } catch (error) {
-            console.error("Error encrypting secret", secret.key, error);
+            console.error("Error encrypting secret", secret.label, error);
             console.error(error.stack);
         }
     }
