@@ -20,13 +20,10 @@
  */
 package ste.toosla.ui;
 
-import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
 import org.json.JSONArray;
-import org.junit.Before;
 import org.junit.Test;
 import ste.xtest.json.api.JSONAssertions;
 
@@ -34,14 +31,6 @@ import ste.xtest.json.api.JSONAssertions;
  *
  */
 public class ThingsTest extends TooslaTestBase {
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
-        loadPage("index.html");
-    }
-
     @Test
     public void things_displayed_on_page() {
         then(visible("#things")).isTrue();

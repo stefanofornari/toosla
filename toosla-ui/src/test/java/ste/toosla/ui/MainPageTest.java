@@ -20,24 +20,13 @@
  */
 package ste.toosla.ui;
 
-import java.io.File;
-import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
  *
  */
 public class MainPageTest extends TooslaTestBase {
-
-    @Before
-    @Override
-    public void before() throws Exception {
-        super.before();
-        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
-    }
-
     @Test
     public void version_displayed_in_main_page() throws Exception {
         loadPage("index.html");

@@ -20,24 +20,13 @@
  */
 package ste.toosla.ui;
 
-import java.io.File;
-import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
  *
  */
 public class CalcTest extends TooslaTestBase {
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
-        loadPage("index.html");
-    }
-
     @Test
     public void calc_displayed_on_page() {
         then(visible("#calc")).isTrue();

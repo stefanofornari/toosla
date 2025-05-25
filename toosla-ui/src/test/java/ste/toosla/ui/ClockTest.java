@@ -20,10 +20,7 @@
  */
 package ste.toosla.ui;
 
-import java.io.File;
-import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.Before;
 import org.junit.Test;
 import ste.xtest.concurrent.WaitFor;
 
@@ -31,16 +28,6 @@ import ste.xtest.concurrent.WaitFor;
  *
  */
 public class ClockTest extends TooslaTestBase {
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
-        FileUtils.copyDirectory(new File("src/test/webapp"), localFileServer.root.toFile());
-
-        loadPage("index.html");
-    }
-
     @Test
     public void clock_displayed_on_page() {
         then(exec("toosla.modules.getController('clock')")).isNotEqualTo("undefined");
