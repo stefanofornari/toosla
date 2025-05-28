@@ -16,7 +16,7 @@
     --toast-border-radius: 0px;
     --tool-button-border-radius: 0px;
     --window-border-radius: 0px;
-    
+
     --textarea-font-size: 20px
 }
 
@@ -27,3 +27,24 @@
 .card {
     font-size: 20px;
 }
+
+#get-pin-dialog[open] {
+    position: fixed;
+    inset: 0 0 0 0;
+    margin: auto;
+    border: 0px;
+    background: #f9f9f9;
+}
+
+#get-pin-dialog .dialog-content {
+    height: 250px
+}
+
+#get-pin-dialog .dialog-content input {
+    font-size: 24px;
+}
+
+#get-pin-dialog .dialog-content .key {
+    font-size: 24px;
+}
+

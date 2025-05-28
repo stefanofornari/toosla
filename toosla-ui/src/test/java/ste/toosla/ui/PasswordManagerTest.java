@@ -32,6 +32,8 @@ import ste.xtest.json.api.JSONAssertions;
  */
 public class PasswordManagerTest extends TooslaTestBase {
 
+    private static final String[] INVALID = new String[] {"undefined", "null", "\"\"", "\" \t\"" };
+
     @Before
     @Override
     public void before() throws Exception {
@@ -68,8 +70,6 @@ public class PasswordManagerTest extends TooslaTestBase {
 
     @Test
     public void save_secret_sanity_check() throws Exception {
-        final String[] INVALID = new String[] {"undefined", "null", "\"\"", "\" \t\"" };
-
         for (final String VALUE: INVALID) {
             exec(String.format("""
                 e = "";
@@ -166,137 +166,93 @@ public class PasswordManagerTest extends TooslaTestBase {
     }
 
     @Test
+    public void load_secret_sanity_check() {
+        for (final String VALUE: INVALID) {
+            exec(String.format("""
+                e = "";
+                passwd.loadSecret(%s, "label").catch((error) => {
+                    e = error.toString();
+                });
+            """, VALUE));
+            then(exec("e")).isEqualTo("Error: pin can not be null or empty");
+        }
+
+        for (final String VALUE: INVALID) {
+            exec(String.format("""
+                e = "";
+                passwd.loadSecret("1234", %s).catch((error) => {
+                    e = error.toString();
+                });
+            """, VALUE));
+            then(exec("e")).isEqualTo("Error: label can not be null or empty");
+        }
+    }
+
+    @Test
     public void remove_secret() {
+        exec("""
+            secrets = [];
+            passwd.saveSecret('1234', { label:'label1', data: 'hello world' }).then(() => {
+                secrets.push(null) ;
+            });
+        """);
+
+        new WaitFor(500, () -> (Boolean)exec("(secrets && secrets.length == 1)"));
+
+        exec("""
+            secret = {};
+            passwd.removeSecret("label1").then(() => {
+               secret = localStorage.getItem("toosla.passwd.secret.label1");
+            });
+        """);
+
+        new WaitFor(500, () -> exec("(secret)") != null);
+
+        exec("""
+            done = false;
+            passwd.removeSecret("not_exist").then(() => {
+               done = true;
+            });
+        """);
+
+        new WaitFor(500, () -> (Boolean)exec("(done)"));
     }
 
     @Test
-    public void exception_if_pin_is_too_short_or_too_long() {
-
+    public void remove_secrete_sanity_check() {
+        for (final String VALUE: INVALID) {
+            exec(String.format("""
+                e = "";
+                passwd.removeSecret(%s).catch((error) => {
+                    e = error.toString();
+                });
+            """, VALUE));
+            then(exec("e")).isEqualTo("Error: label can not be null or empty");
+        }
     }
 
     @Test
-    public void wrong_pin_error() {
+    public void get_existing_pin_from_session_storage() {
+        exec("sessionStorage.setItem('toosla.passwd.pin', '1234')");
+        then(exec("passwd.pin")).isEqualTo("1234");
 
+        exec("sessionStorage.setItem('toosla.passwd.pin', '5678')");
+        then(exec("passwd.pin")).isEqualTo("5678");
     }
 
     @Test
-    public void wrong_secret_object() {
+    public void set_pin_to_session_storage() {
+        exec("passwd.pin='1234'");
+        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("1234");
 
+        exec("passwd.pin='5678'");
+        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("5678");
     }
 
     @Test
-    public void passwd_service_in_angular() {
-
+    public void check_if_pin_has_been_initialized() {
+        then((Boolean)exec("passwd.doesPINExist()")).isFalse();
+        exec("localStorage.setItem('toosla.passwd.pin', 'something')");
+        then((Boolean)exec("passwd.doesPINExist()")).isTrue();
     }
 }
-// -----------------------------------------------------------------------------
-// PasswordManager
-//
-/*
-class PasswordManager {
-    constructor() {
-        console.debug("PasswordManager created!");
-    }
-
-    async saveSecret(pin, secret) {
-        //
-        // TODO: check parameters
-        //
-        try {
-            let encrypted = await encryptText(pin, secret.secret); // {iv: <iv>, data: <encrypted data>}
-            localStorage.setItem("toosla.passwd.secrets", {
-                label: secret.label,
-                iv: encrypted.iv,
-                data: encrypted.data
-            });
-        } catch (error) {
-            console.error("Error encrypting secret", secret.label, error);
-            console.error(error.stack);
-        }
-    }
-
-    async deriveKeyFromPin(pin) {
-        // Use SHA-256 to create a key from the PIN
-        const pin = await crypto.subtle.digest('SHA-256', encoder.encode(pin));
-
-        // Import the hashed PIN as a CryptoKey
-        return crypto.subtle.importKey(
-            'raw',
-            pin,
-            { name: 'AES-GCM' },
-            false,
-            ['encrypt', 'decrypt']
-        );
-    }
-
-    async encryptText(pin, text) {
-        // Generate a random IV (Initialization Vector)
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-
-        // Convert text to ArrayBuffer
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-
-        // Derive key from PIN if not already derived
-        const derivedKey = await this.deriveKeyFromPin(pin);
-
-        // Encrypt the data
-        const encryptedBuffer = await crypto.subtle.encrypt(
-            {
-                name: 'AES-GCM',
-                iv: iv
-            },
-            derivedKey,
-            data
-        );
-
-        // Return encrypted data
-        return {
-            iv: iv,
-            data: encryptedBuffer
-        };
-    }
-
-    async decryptText(encryptedData, pin, iv) {
-        // Use existing derivedKey or create a new one from the PIN
-        let key = derivedKey;
-        if (!key) {
-            key = await this.deriveKeyFromPin(pin);
-            derivedKey = key; // Store for future use
-        }
-
-        // Decrypt the data
-        const decryptedBuffer = await crypto.subtle.decrypt(
-            {
-                name: 'AES-GCM',
-                iv: iv
-            },
-            key,
-            encryptedData
-        );
-
-        // Convert ArrayBuffer back to text
-        const decoder = new TextDecoder();
-        return decoder.decode(decryptedBuffer);
-    }
-
-    async saveSecret(pin, secret) {
-        //
-        // TODO: check parameters
-        //
-        try {
-            let encrypted = await this.encryptText(pin, secret.secret); // {iv: <iv>, data: <encrypted data>}
-            localStorage.setItem("toosla.passwd.secrets", {
-                label: secret.label,
-                iv: encrypted.iv,
-                data: encrypted.data
-            });
-        } catch (error) {
-            console.error("Error encrypting secret", secret.label, error);
-            console.error(error.stack);
-        }
-    }
-}
-
-const passwd1 = new PasswordManager();
-*/

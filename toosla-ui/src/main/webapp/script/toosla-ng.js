@@ -19,8 +19,11 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-//import { PasswordManager } from "./PasswordManager";
+import { PasswordManager } from "./PasswordManager.js";
+
 const tooslaModule = angular.module('Toosla', []);
+
+tooslaModule.factory('passwd', PasswordManager);
 
 for (const [name, controller] of toosla.modules()) {
     tooslaModule.component(name, {
@@ -30,4 +33,3 @@ for (const [name, controller] of toosla.modules()) {
 };
 
 toosla.ready = true;
-//tooslaModule.factory('passwd', PasswordManager);

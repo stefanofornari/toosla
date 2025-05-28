@@ -26,7 +26,6 @@ export class ZefiroController {
 
     constructor($scope, passwd) {
         this.$scope = $scope;
-        console.log("passwd", passwd);
     }
 
     $onInit() {

@@ -19,7 +19,7 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-//import { PasswordManager } from "./PasswordManager.js";
+import { PasswordManager } from "./PasswordManager.js";
 
 export class Toosla {
     version = "@{project.version}";
@@ -78,7 +78,7 @@ export class Toosla {
 };
 
 class TooslaController {
-    constructor($scope, $compile, $timeout) {
+    constructor($scope, $compile, $timeout, passwd) {
         this.$scope = $scope;
         this.$compile = $compile;
         this.$timeout = $timeout;
@@ -86,6 +86,8 @@ class TooslaController {
         this.$scope.moduleSettings = this.moduleSettings.bind(this);
         this.$scope.closeSettings = this.closeSettings.bind(this);
         this.$scope.toogleFullscreen = this.toogleFullscreen.bind(this);
+
+        this.passwd = new PasswordManager();
     }
 
     $onInit() {
@@ -135,6 +137,13 @@ class TooslaController {
                         this.$compile(button)(this.$scope);
                     }
                 }
+            }
+
+            //
+            // show create PIN dialog if no PIN is in session and local storage
+            //
+            if (!this.passwd.doesPINExist()) {
+                $('#create-pin-dialog')[0].showModal();
             }
         });
     }
@@ -186,7 +195,13 @@ class TooslaController {
         console.info("Local storage: ", window.localStorage);
         console.info("Credential container: ", navigator.credentials);
     }
+
+    createPIN() {
+        sessionStorage.setItem(PasswordManager.KEY_PIN, "1234");
+        localStorage.setItem(PasswordManager.KEY_PIN, "aabbcc");
+    }
 }
 
 //  const { TaskTimer } = tasktimer;
+TooslaController.$inject = ["$scope", "$compile", "$timeout", "passwd"];
 window.toosla = new Toosla();

@@ -20,25 +20,13 @@
  */
 package ste.toosla.ui;
 
-import java.io.File;
-import org.apache.commons.io.FileUtils;
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
  *
  */
 public class ZefiroTest extends TooslaTestBase {
-
-    @Before
-    @Override
-    public void before() throws Exception {
-        super.before();
-        FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
-        loadPage("index.html");
-    }
-
     @Test
     public void zefiro_displayed_on_page() {
         then(visible("#zefiro")).isTrue();
@@ -53,5 +41,24 @@ public class ZefiroTest extends TooslaTestBase {
     public void available_toosla_buttons() {
         then(visible("#zefiro .application-action-bar button.button.toosla-btn-fullscreen")).isTrue();
         then(visible("#zefiro .application-action-bar button.button.toosla-btn-settings")).isTrue();
+    }
+
+    @Test
+    public void settings_button_opens_settings_div() {
+        then(visible("#zefiro .settings")).isFalse();
+        click("#zefiro button.toosla-btn-settings");
+        then(visible("#toosla-settings .settings")).isTrue();
+        then(visible("#toosla-settings .settings input[name=\"username\"]")).isTrue();
+        then(visible("#toosla-settings .settings input[name=\"password\"]")).isTrue();
+    }
+
+    @Test
+    public void save_credentials_on_settings_done() {
+        click("#zefiro button.toosla-btn-settings");
+        exec("""
+c
+            $("#toosla-settings .settings input[name='username']").val("user1")
+            $("#toosla-settings .settings input[name='password']").val("password1")
+        """); // pick timezone
     }
 }

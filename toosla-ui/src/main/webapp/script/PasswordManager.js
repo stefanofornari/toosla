@@ -24,7 +24,22 @@ export class PasswordManager {
     static ENCODER = new TextEncoder();
     static DECODER = new TextDecoder();
 
+    static KEY_PIN = "toosla.passwd.pin";
+
     constructor() {
+    }
+
+    get pin() {
+        return sessionStorage.getItem(PasswordManager.KEY_PIN);
+    }
+
+    set pin(value) {
+        sessionStorage.setItem(PasswordManager.KEY_PIN, value);
+    }
+
+    doesPINExist() {
+
+        return (localStorage.getItem(PasswordManager.KEY_PIN) !== null);
     }
 
     async saveSecret(pin, secret) {
@@ -53,6 +68,9 @@ export class PasswordManager {
     }
 
     async loadSecret(pin, label) {
+        Utils.checkValue("pin", pin);
+        Utils.checkValue("label", label);
+
         const secretPlain = localStorage.getItem("toosla.passwd.secret." + label);
         const secret = JSON.parse(secretPlain);
 
@@ -73,4 +91,8 @@ export class PasswordManager {
         return PasswordManager.DECODER.decode(clearArray);
     }
 
+    async removeSecret(label) {
+        Utils.checkValue("label", label);
+        localStorage.removeItem(label);
+    }
 }
