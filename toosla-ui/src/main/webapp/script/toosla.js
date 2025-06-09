@@ -78,6 +78,8 @@ export class Toosla {
 };
 
 class TooslaController {
+    error = "";
+
     constructor($scope, $compile, $timeout, passwd) {
         this.$scope = $scope;
         this.$compile = $compile;
@@ -87,7 +89,7 @@ class TooslaController {
         this.$scope.closeSettings = this.closeSettings.bind(this);
         this.$scope.toogleFullscreen = this.toogleFullscreen.bind(this);
 
-        this.passwd = new PasswordManager();
+        this.passwd = passwd;
     }
 
     $onInit() {
@@ -142,8 +144,12 @@ class TooslaController {
             //
             // show create PIN dialog if no PIN is in session and local storage
             //
-            if (!this.passwd.doesPINExist()) {
-                $('#create-pin-dialog')[0].showModal();
+            if (!this.passwd.pin) {
+                if (!this.passwd.includes('pin')) {
+                    $('#create-pin-dialog')[0].showModal();
+                } else {
+                    $('#insert-pin-dialog')[0].showModal();
+                }
             }
         });
     }
@@ -196,9 +202,46 @@ class TooslaController {
         console.info("Credential container: ", navigator.credentials);
     }
 
-    createPIN() {
-        sessionStorage.setItem(PasswordManager.KEY_PIN, "1234");
-        localStorage.setItem(PasswordManager.KEY_PIN, "aabbcc");
+    async updatePIN(event) {
+        const create = (event.target.className.indexOf("btn-confirm") >= 0);
+        const pin = (create)
+                  ? Metro.getPlugin('#create-pin-dialog input', 'keypad').val()
+                  : "";
+
+        if (pin !== "") {
+            await this.passwd.saveSecret(pin, {
+                label: "pin",
+                data: pin
+            });
+        }
+        this.passwd.pin = pin;
+        $('#create-pin-dialog')[0].close();
+    }
+
+    async confirmPIN(event) {
+        const confirm = (event.target.className.indexOf("btn-confirm") >= 0);
+        const pin = (confirm)
+                  ? Metro.getPlugin('#insert-pin-dialog input', 'keypad').val()
+                  : "";
+
+        if (pin !== "") {
+            this.passwd.loadSecret(pin, "pin").then((savedPin) => {
+                if (pin === savedPin) {
+                    // OK!
+                    $('#insert-pin-dialog')[0].close();
+                    this.passwd.pin = pin;
+                } else {
+                    this.passwd.pin = "";
+                    this.error = "Incorrect PIN, try again";
+                    this.$timeout(() => this.error = "", 2500);
+                }
+            }).catch((error) => {
+                this.passwd.pin = "";
+                this.error = "Incorrect PIN, try again";
+                this.$timeout(() => this.error = "", 2500);
+            });
+        }
+
     }
 }
 

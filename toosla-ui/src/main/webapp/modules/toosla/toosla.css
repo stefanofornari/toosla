@@ -28,7 +28,7 @@
     font-size: 20px;
 }
 
-#get-pin-dialog[open] {
+.toosla-pin-dialog[open] {
     position: fixed;
     inset: 0 0 0 0;
     margin: auto;
@@ -36,15 +36,15 @@
     background: #f9f9f9;
 }
 
-#get-pin-dialog .dialog-content {
+.toosla-pin-dialog .dialog-content {
     height: 250px
 }
 
-#get-pin-dialog .dialog-content input {
+.toosla-pin-dialog .dialog-content input {
     font-size: 24px;
 }
 
-#get-pin-dialog .dialog-content .key {
+.toosla-pin-dialog .dialog-content .key {
     font-size: 24px;
 }
 
