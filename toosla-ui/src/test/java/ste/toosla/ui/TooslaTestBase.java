@@ -31,13 +31,15 @@ import ste.xtest.web.BugFreeWeb;
  */
 public class TooslaTestBase extends BugFreeWeb {
 
+    protected String page = "index.html";
+
     @Before
     @Override
     public void before() throws Exception {
         super.before();
         FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
         FileUtils.copyDirectory(new File("src/test/webapp"), localFileServer.root.toFile());
-        loadPage("index.html");
+        loadPage(page);
     }
 
 }

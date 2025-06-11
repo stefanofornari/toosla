@@ -32,23 +32,37 @@
         >
     </div>
     <div class="dialog-actions">
-        <button class="button light btn-confirm" ng-click="$ctrl.onSetPIN();" autofocus>OK</button>
-        <button class="button dark primary btn-cancel" ng-click="">No PIN for now</button>
+        <button class="button dark btn-confirm" ng-click="$ctrl.onSetPIN();" autofocus>OK</button>
+        <button class="button light primary btn-cancel" ng-click="">No PIN for now</button>
     </div>
 </dialog>
 
-<dialog id="create-pin-dialog">
+<dialog id="create-pin-dialog" class="toosla-pin-dialog">
     <div class="dialog-title">Create a new PIN</div>
     <div class="dialog-content">
-        <input data-label="PIN: "
-               data-role="keypad"
+        <input data-role="keypad"
                data-key-size="48"
                data-open="true"
         >
     </div>
     <div class="dialog-actions">
-        <button class="button light btn-confirm" ng-click="$ctrl.createPIN();" autofocus>Create</button>
-        <button class="button dark primary btn-cancel" ng-click="">No PIN for now</button>
+        <button class="button dark btn-confirm" ng-click="$ctrl.updatePIN($event);" autofocus>Create</button>
+        <button class="button light primary btn-cancel" ng-click="$ctrl.updatePIN($event)">No PIN for now</button>
+    </div>
+</dialog>
+
+<dialog id="insert-pin-dialog" class="toosla-pin-dialog">
+    <div class="dialog-title">Insert PIN {{ $ctrl.error ? (" - " + $ctrl.error) : ""}}</div>
+    <div class="dialog-content">
+        <input data-role="keypad"
+               data-key-size="48"
+               data-open="true"
+               type="password"
+        >
+    </div>
+    <div class="dialog-actions">
+        <button class="button dark btn-confirm" ng-click="$ctrl.confirmPIN($event);" autofocus>Confirm</button>
+        <button class="button light primary btn-cancel" ng-click="$ctrl.confirmPIN($event)">No PIN for now</button>
     </div>
 </dialog>
 

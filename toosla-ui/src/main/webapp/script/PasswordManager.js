@@ -25,6 +25,7 @@ export class PasswordManager {
     static DECODER = new TextDecoder();
 
     static KEY_PIN = "toosla.passwd.pin";
+    static KEY_SECRET_PREFIX = "toosla.passwd.secret";
 
     constructor() {
     }
@@ -37,9 +38,9 @@ export class PasswordManager {
         sessionStorage.setItem(PasswordManager.KEY_PIN, value);
     }
 
-    doesPINExist() {
-
-        return (localStorage.getItem(PasswordManager.KEY_PIN) !== null);
+    includes(key) {
+        const item = localStorage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + key);
+        return (item !== null);
     }
 
     async saveSecret(pin, secret) {
@@ -50,49 +51,75 @@ export class PasswordManager {
 
         const iv = crypto.getRandomValues(new Uint8Array(12));
 
-        const key = await crypto.subtle.importKey(
-            "raw",
-            PasswordManager.ENCODER.encode(pin),
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"]
-        );
+        const key = await this.deriveKeyFromPin(pin);
 
         const encrypted = new Uint8Array(await crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: iv },
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
             key,
             PasswordManager.ENCODER.encode(secret.data)
         ));
 
-        localStorage.setItem("toosla.passwd.secret." + secret.label, JSON.stringify({iv: [...iv], secret: [...encrypted]}));
+        localStorage.setItem(
+            PasswordManager.KEY_SECRET_PREFIX + "." + secret.label, JSON.stringify({iv: [...iv], secret: [...encrypted]})
+        );
     }
 
+    /**
+     * Load the secret identified by label if the PIN is correct; if provided
+     * PIN is incorrect an exception is thrown
+     *
+     * @param {string} pin PIN used when saving the secrect
+     * @param {string} label the secret identifier
+     *
+     * @returns {string} the unencrypted value if PIN is correct
+     *
+     * @throws an exception if it was not possible to load the secret (not
+     *         existing, PIN incorrect, other errors)
+     */
     async loadSecret(pin, label) {
         Utils.checkValue("pin", pin);
         Utils.checkValue("label", label);
 
-        const secretPlain = localStorage.getItem("toosla.passwd.secret." + label);
-        const secret = JSON.parse(secretPlain);
+        const secretPlain = localStorage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
 
-        const key = await crypto.subtle.importKey(
-            "raw",
-            PasswordManager.ENCODER.encode(pin),
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"]
-        );
+        if (!secretPlain) {
+            throw new Error(`secret '${label}' not found`);
+        }
 
-        const clearArray = new Uint8Array(await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: secret.iv },
-            key,
-            secret.secret
-        ));
+        try {
+            const secret = JSON.parse(secretPlain);
+            const key = await this.deriveKeyFromPin(pin);
+            const clearArray = new Uint8Array(await crypto.subtle.decrypt(
+                {
+                    name: "AES-GCM",
+                    iv: new Uint8Array(secret.iv).buffer
+                },
+                key,
+                new Uint8Array(secret.secret).buffer
+            ));
 
-        return PasswordManager.DECODER.decode(clearArray);
+            return await PasswordManager.DECODER.decode(clearArray);
+        } catch (error) {
+            throw new Error(`unable to load secret '${label}' (${error.message})`);
+        }
     }
 
     async removeSecret(label) {
         Utils.checkValue("label", label);
         localStorage.removeItem(label);
+    }
+
+    async deriveKeyFromPin(pin) {
+        const hash = await crypto.subtle.digest("SHA-256", PasswordManager.ENCODER.encode(pin));
+        return await crypto.subtle.importKey(
+            "raw",
+            hash,
+            { name: "AES-GCM" },
+            false,
+            ["encrypt", "decrypt"]
+        );
     }
 }

@@ -28,6 +28,10 @@ import org.junit.Test;
  */
 public class ModulesTest extends TooslaTestBase {
 
+    public ModulesTest() {
+        page = "test.html";
+    }
+
     @Test
     public void module_is_initialized() throws Exception {
         then(exec("toosla.modules()")).isNotNull().isNotEqualTo("undefined");
