@@ -29,7 +29,10 @@ export class ZefiroController {
 
         this.scope.credentials = {
             username: "",
-            password: ""
+            password: "",
+            configured: function() {
+                return this.username && this.password;
+            }
         };
     }
 
@@ -39,6 +42,7 @@ export class ZefiroController {
 
     $postLink() {
         console.debug(`${ZefiroController.NAME} componenent linked!`);
+        this.settings('open');
     }
 
     $onDestroy() {
@@ -46,8 +50,6 @@ export class ZefiroController {
     }
 
     async settings(action, status) {
-        console.debug("Zefiro settings action:", action, status, JSON.stringify(this.scope.credentials));
-
         if (action === 'open') {
             const accounts = this.passwd.labels("zefiro");
             if (accounts.length !== 0) {
@@ -71,13 +73,12 @@ export class ZefiroController {
                 // remove any additional zefiro credentials
                 //
                 for (let cred of this.passwd.labels("zefiro")) {
-                    console.debug("cred", cred, this.scope.credentials.username);
                     if (cred !== this.scope.credentials.username) {
                         await this.passwd.removeSecret("zefiro." + cred);
                     }
                 }
-                console.debug("done saving credentials");
             } else {
+                // nothing to do
             }
         }
     }

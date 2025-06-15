@@ -4,7 +4,9 @@
     </div>
 
     <div class="card-content d-flex">
-        <span>Tap </span><span class="icon mif-cog" style="margin: 5px;"></span><span> to configure Zefiro.</span>
+        <div class="configure-message" ng-hide="credentials.configured()">
+            <span>Tap </span><span class="icon mif-cog" style="margin: 5px;"></span><span> to configure Zefiro.</span>
+        </div>
     </div>
     <div class="card-footer">
         <div class="application-action-bar"></div>

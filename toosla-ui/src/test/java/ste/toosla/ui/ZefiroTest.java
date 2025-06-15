@@ -116,4 +116,27 @@ public class ZefiroTest extends TooslaTestBase {
         then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
         then(exec("ctrl.passwd.labels()")).isEqualTo("[\"zefiro.user1\"]");
     }
+
+    @Test
+    public void set_status_configured_on_settings_done() throws Exception {
+        exec("const ctrl = angular.element($('#zefiro')).controller('zefiro');");
+        click("#zefiro button.toosla-btn-settings");
+        exec("""
+            angular.element($("#toosla-settings .settings input[name='username']")).val("user1").triggerHandler('input');
+            angular.element($("#toosla-settings .settings input[name='password']")).val("password1").triggerHandler('input');
+        """);
+        click("#toosla-settings button.btn-done"); // click done button
+        then(visible("#zefiro .card-content .configure-message")).isFalse();
+    }
+
+    @Test
+    public void load_credentials_at_page_load() throws Exception {
+        then(visible("#zefiro .card-content .configure-message")).isTrue();
+        exec("""
+            const ctrl = angular.element($('#zefiro')).controller('zefiro');
+            ctrl.passwd.saveSecret('1234', { label: 'zefiro.user0', data: 'something' });
+        """);
+        loadPage("index.html");
+        then(visible("#zefiro .card-content .configure-message")).isFalse();
+    }
 }
