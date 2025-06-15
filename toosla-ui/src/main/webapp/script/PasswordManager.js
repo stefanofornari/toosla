@@ -109,7 +109,7 @@ export class PasswordManager {
 
     async removeSecret(label) {
         Utils.checkValue("label", label);
-        localStorage.removeItem(label);
+        localStorage.removeItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
     }
 
     async deriveKeyFromPin(pin) {
@@ -121,5 +121,34 @@ export class PasswordManager {
             false,
             ["encrypt", "decrypt"]
         );
+    }
+
+    /**
+     * Return an array containing the labels in the passwd namespace.
+     * If <codep>refix</code> is provided, prefix's subkeys are returned.
+     */
+    labels(namespace) {
+        if (!namespace) {
+            namespace = "";
+        } else {
+            namespace = namespace.trim();
+        }
+        if (namespace.length>0) {
+            if (!namespace.endsWith(".")) {
+                namespace += ".";
+            }
+        }
+        const prefix = PasswordManager.KEY_SECRET_PREFIX + "." + namespace;
+
+        const ret = [];
+        for (let i=0; i<localStorage.length; ++i) {
+            const l = localStorage.key(i);
+
+            if (l.startsWith(prefix)) {
+                ret.push(l.substring(prefix.length));
+            }
+        }
+
+        return ret;
     }
 }

@@ -215,7 +215,7 @@ public class PasswordManagerTest extends TooslaTestBase {
             });
         """);
 
-        new WaitFor(500, () -> exec("(secret)") != null);
+        new WaitFor(500, () -> exec("(secret)") == null);
 
         exec("""
             done = false;
@@ -286,5 +286,27 @@ public class PasswordManagerTest extends TooslaTestBase {
             });
         """);
         new WaitFor(250, () -> String.valueOf(exec("error")).startsWith("unable to load secret 'label1' ("));
+    }
+
+    /**
+     * labels() returns an array containing the labels in the passwd namespace.
+     * If <codep>prefix</code> is provided, prefix's subkeys are returned.
+     */
+    @Test
+    public void labels_returns_all_labels_without_prefix() throws Exception {
+        exec("passwd.saveSecret('1234', { label:'one', data:'hello' })");
+
+        new WaitFor(500, () -> (Boolean) exec("passwd.includes('one')"));
+        then(String.valueOf(exec("passwd.labels()"))).isEqualTo("[\"one\"]");
+
+        exec("passwd.saveSecret('1234', { label:'one.two', data:'world' })");
+        new WaitFor(500, () -> (Boolean) exec("passwd.includes('one.two')"));
+        then(String.valueOf(exec("passwd.labels().sort()"))).isEqualTo("[\"one\",\"one.two\"]");
+
+        then(String.valueOf(exec("passwd.labels('one')"))).isEqualTo("[\"two\"]");
+        then(String.valueOf(exec("passwd.labels('one.')"))).isEqualTo("[\"two\"]");
+        then(String.valueOf(exec("passwd.labels('').sort()"))).isEqualTo("[\"one\",\"one.two\"]");
+        then(String.valueOf(exec("passwd.labels('  ').sort()"))).isEqualTo("[\"one\",\"one.two\"]");
+        then(String.valueOf(exec("passwd.labels(null).sort()"))).isEqualTo("[\"one\",\"one.two\"]");
     }
 }
