@@ -21,12 +21,21 @@
 package ste.toosla.ui;
 
 import static org.assertj.core.api.BDDAssertions.then;
+import org.junit.Before;
 import org.junit.Test;
+import ste.xtest.concurrent.WaitFor;
 
 /**
  *
  */
 public class ZefiroTest extends TooslaTestBase {
+
+    @Override
+    @Before
+    public void before() throws Exception {
+        super.before();
+        exec("sessionStorage.setItem('toosla.passwd.pin', '1234');");
+    }
     @Test
     public void zefiro_displayed_on_page() {
         then(visible("#zefiro")).isTrue();
@@ -53,12 +62,58 @@ public class ZefiroTest extends TooslaTestBase {
     }
 
     @Test
-    public void save_credentials_on_settings_done() {
+    public void load_existing_credentials_on_opening_settings() throws Exception {
+        exec("""
+            const passwd = angular.element($('#zefiro')).controller('zefiro').passwd;
+            passwd.saveSecret('1234', {label: 'zefiro.user1', data: 'password1'});
+        """);
+        Thread.sleep(250);
+        click("#zefiro button.toosla-btn-settings");
+        Thread.sleep(250);
+        then(val("#toosla-settings .settings input[name=username]")).isEqualTo("user1");
+        then(val("#toosla-settings .settings input[name=password]")).isEqualTo("password1");
+
+        exec("passwd.removeSecret('zefiro.user1')");
+        click("#zefiro button.toosla-btn-settings");
+        Thread.sleep(250);
+        then(val("#toosla-settings .settings input[name=username]")).isEmpty();
+        then(val("#toosla-settings .settings input[name=password]")).isEmpty();
+    }
+
+    @Test
+    public void save_credentials_on_settings_done() throws Exception {
         click("#zefiro button.toosla-btn-settings");
         exec("""
-c
-            $("#toosla-settings .settings input[name='username']").val("user1")
-            $("#toosla-settings .settings input[name='password']").val("password1")
-        """); // pick timezone
+            const ctrl = angular.element($('#zefiro')).controller('zefiro');
+            angular.element($("#toosla-settings .settings input[name='username']")).val("user1").triggerHandler('input');
+            angular.element($("#toosla-settings .settings input[name='password']")).val("password1").triggerHandler('input');
+        """); // set credentials
+        click("#toosla-settings button.btn-done"); // click done button
+        then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
+        exec("""
+           var pwd = null;
+           ctrl.passwd.loadSecret('1234', 'zefiro.user1')
+           .then((p) => { pwd = p })
+           .catch((e) => console.error(e.message, e.stack));
+        """);
+        new WaitFor(250, () -> {
+            return "password1".equals(exec("pwd"));
+        });
+    }
+
+    @Test
+    public void save_credentials_replaces_existing() throws Exception {
+        exec("""
+            const ctrl = angular.element($('#zefiro')).controller('zefiro');
+            ctrl.passwd.saveSecret('1234', { label: 'zefiro.user0', data: 'something' });
+        """);
+        click("#zefiro button.toosla-btn-settings");
+        exec("""
+            angular.element($("#toosla-settings .settings input[name='username']")).val("user1").triggerHandler('input');
+            angular.element($("#toosla-settings .settings input[name='password']")).val("password1").triggerHandler('input');
+        """); // set credentials
+        click("#toosla-settings button.btn-done"); // click done button
+        then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
+        then(exec("ctrl.passwd.labels()")).isEqualTo("[\"zefiro.user1\"]");
     }
 }

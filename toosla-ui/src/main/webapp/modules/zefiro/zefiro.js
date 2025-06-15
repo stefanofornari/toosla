@@ -23,9 +23,14 @@ export class ZefiroController {
 
     static NAME = "Zefiro";
 
-
     constructor($scope, passwd) {
-        this.$scope = $scope;
+        this.scope = $scope;
+        this.passwd = passwd;
+
+        this.scope.credentials = {
+            username: "",
+            password: ""
+        };
     }
 
     $onInit() {
@@ -40,22 +45,44 @@ export class ZefiroController {
         console.debug(`${ZefiroController.NAME} component linked!`);
     }
 
-    settings(action, status) {
-        console.debug("Zefiro settings action:", action, status);
+    async settings(action, status) {
+        console.debug("Zefiro settings action:", action, status, JSON.stringify(this.scope.credentials));
 
         if (action === 'open') {
+            const accounts = this.passwd.labels("zefiro");
+            if (accounts.length !== 0) {
+                // load settings
+                this.scope.credentials.username = accounts[0];
+                this.scope.credentials.password = await this.passwd.loadSecret(this.passwd.pin, "zefiro." + accounts[0]);
+            } else {
+                this.scope.credentials.username = "";
+                this.scope.credentials.password = "";
+            }
         } else if (action === 'close') {
             if (status === 1) {
                 // save settings
-                console.debug("saving credentials");
+                await this.passwd.saveSecret(
+                    this.passwd.pin, {
+                        label: "zefiro." + this.scope.credentials.username,
+                        data: this.scope.credentials.password
+                    }
+                );
+                //
+                // remove any additional zefiro credentials
+                //
+                for (let cred of this.passwd.labels("zefiro")) {
+                    console.debug("cred", cred, this.scope.credentials.username);
+                    if (cred !== this.scope.credentials.username) {
+                        await this.passwd.removeSecret("zefiro." + cred);
+                    }
+                }
+                console.debug("done saving credentials");
             } else {
-                // load settings
             }
         }
     }
 
 }
 
-//ZefiroController.$inject = ['$scope', 'passwd'];
-ZefiroController.$inject = ['$scope'];
+ZefiroController.$inject = ['$scope', 'passwd'];
 toosla.registerModule(ZefiroController.NAME.toLowerCase(), ZefiroController);
