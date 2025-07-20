@@ -1,0 +1,210 @@
+#!/bin/bash
+
+# --- Script Configuration and Setup ---
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# The return value of a pipeline is the status of the last command to exit with a non-zero status,
+# or zero if all commands in the pipeline exit successfully.
+set -o pipefail
+
+# --- Usage and Argument Parsing ---
+
+# Check if the correct number of arguments is provided.
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <destination_directory> <source_directory_1> [source_directory_2 ...]"
+    echo ""
+    echo "Example: $0 /var/www/backup /home/user/my_project /data/shared_files"
+    echo ""
+    echo "This script will monitor all specified source directories recursively in the background."
+    echo "When any change is detected, it will first clear the destination directory,"
+    echo "and then copy all content from all source directories into the destination."
+    echo "Finally, it will start a Java web server (jwebserver) in the foreground,"
+    echo "serving the synchronized content from the destination directory."
+    exit 1
+fi
+
+# The first argument is the destination directory.
+DEST_DIR="$1"
+# Shift arguments so that "$@" now contains only the source directories.
+shift
+# All remaining arguments are the source directories.
+SOURCE_DIRS=("$@")
+
+# Define the port for the Java web server.
+WEBSERVER_PORT="8080"
+# Use printf for robust command string construction, handling spaces in DEST_DIR.
+WEBSERVER_CMD="jwebserver -p $WEBSERVER_PORT -d '$DEST_DIR'"
+
+# --- Cleanup Trap (Important for background processes) ---
+# This trap ensures that the background inotifywait process is killed
+# when the main script exits (e.g., if you press Ctrl+C, which will stop jwebserver first).
+inotify_pid="" # Variable to store the PID of the background inotifywait process
+
+cleanup() {
+    echo ""
+    echo "$(date): Shutting down monitoring script."
+    if [ -n "$inotify_pid" ]; then
+        echo "$(date): Stopping background file monitor (PID: $inotify_pid)..."
+        # Using 'kill' to send SIGTERM, suppressing errors if process is already gone.
+        kill "$inotify_pid" 2>/dev/null || true
+        # Wait for the background process to actually terminate.
+        wait "$inotify_pid" 2>/dev/null || true
+        echo "$(date): Background monitor stopped."
+    fi
+}
+
+# Register the cleanup function to run on EXIT (script finishes),
+# SIGINT (Ctrl+C), and SIGTERM (kill command).
+trap cleanup EXIT SIGINT SIGTERM
+
+# --- Dependency Check ---
+
+# Check for inotifywait (part of inotify-tools)
+if ! command -v inotifywait &> /dev/null; then
+    echo "Error: 'inotifywait' command not found." >&2
+    echo "The 'inotify-tools' package is required for this script to monitor file changes." >&2
+    echo "Please install it using your distribution's package manager:" >&2
+    echo "  For Debian/Ubuntu: sudo apt-get install inotify-tools" >&2
+    echo "  For CentOS/RHEL/Fedora: sudo yum install inotify-tools  (or sudo dnf install inotify-tools)" >&2
+    exit 1
+fi
+
+# Check for rsync
+if ! command -v rsync &> /dev/null; then
+    echo "Error: 'rsync' command not found." >&2
+    echo "The 'rsync' package is required for this script to copy files." >&2
+    echo "Please install it using your distribution's package manager:" >&2
+    echo "  For Debian/Ubuntu: sudo apt-get install rsync" >&2
+    echo "  For CentOS/RHEL/Fedora: sudo yum install rsync  (or sudo dnf install rsync)" >&2
+    exit 1
+fi
+
+# Check for jwebserver (part of JDK 18+)
+if ! command -v jwebserver &> /dev/null; then
+    echo "Error: 'jwebserver' command not found." >&2
+    echo "The 'jwebserver' tool is part of the Java Development Kit (JDK) version 18 or later." >&2
+    echo "Please ensure you have a compatible JDK installed and its 'bin' directory is in your PATH." >&2
+    exit 1
+fi
+
+
+# --- Validation and Destination Creation ---
+
+# Check if destination directory exists, if not, create it.
+if [ ! -d "$DEST_DIR" ]; then
+    echo "$(date): Warning: Destination directory '$DEST_DIR' does not exist. Attempting to create it..."
+    mkdir -p "$DEST_DIR"
+    if [ $? -ne 0 ]; then
+        echo "$(date): Error: Failed to create destination directory '$DEST_DIR'. Exiting." >&2
+        exit 1
+    fi
+    echo "$(date): Destination directory '$DEST_DIR' created successfully."
+fi
+
+# Validate destination directory writability (after ensuring it exists)
+if [ ! -w "$DEST_DIR" ]; then
+    echo "Error: Destination directory '$DEST_DIR' is not writable. Exiting." >&2
+    exit 1
+fi
+
+# Validate source directories
+for src_dir in "${SOURCE_DIRS[@]}"; do
+    if [ ! -d "$src_dir" ]; then
+        echo "Error: Source directory '$src_dir' does not exist or is not a directory. Exiting." >&2
+        exit 1
+    fi
+    if [ ! -r "$src_dir" ]; then
+        echo "Error: Source directory '$src_dir' is not readable. Exiting." >&2
+        exit 1
+    fi
+done
+
+# Define the events to watch for.
+# These events cover most common file system changes.
+EVENTS="create,modify,delete,move,close_write"
+
+# --- Synchronization Function ---
+
+# This function performs the actual deletion and copying.
+perform_sync() {
+    echo ""
+    echo "---------------------------------------------------------"
+    echo "$(date): Initiating synchronization due to file system change."
+    echo "Event details (if available): Path: '$1', Event: '$2'" # Log event details from inotifywait
+
+    # 1. Delete all content from the destination directory.
+    echo "$(date): Clearing destination directory: '$DEST_DIR'..."
+    find "$DEST_DIR" -mindepth 1 -delete
+    if [ $? -ne 0 ]; then
+        echo "$(date): Error: Failed to clear destination directory '$DEST_DIR'." >&2
+        echo "Synchronization aborted."
+        return 1
+    fi
+    echo "$(date): Destination cleared."
+
+    # 2. Copy content from all source directories to the destination.
+    echo "$(date): Copying content from source directories to '$DEST_DIR'..."
+    for src_dir in "${SOURCE_DIRS[@]}"; do
+        if [ ! -d "$src_dir" ]; then
+            echo "$(date): Warning: Source directory '$src_dir' no longer exists. Skipping copy from it." >&2
+            continue
+        fi
+
+        echo "$(date): Copying from '$src_dir/' to '$DEST_DIR/'..."
+        rsync -a "$src_dir/" "$DEST_DIR/"
+        if [ $? -ne 0 ]; then
+            echo "$(date): Error: Failed to copy contents from '$src_dir' to '$DEST_DIR'." >&2
+            echo "Synchronization might be incomplete."
+        fi
+    done
+    echo "$(date): Synchronization complete."
+    echo "---------------------------------------------------------"
+    echo ""
+    return 0
+}
+
+# --- Initial Synchronization ---
+
+echo "Starting monitoring process..."
+echo "Destination Directory: $DEST_DIR"
+echo "Source Directories: ${SOURCE_DIRS[*]}"
+echo "Web Server Port: $WEBSERVER_PORT"
+echo "Events to monitor: $EVENTS"
+echo ""
+echo "Performing initial synchronization..."
+perform_sync "Initial Sync" "N/A" # Call sync once at startup
+echo "Initial synchronization complete."
+
+# --- Main Monitoring Loop (in Background) ---
+
+echo "$(date): Starting background file monitoring for changes..."
+# We wrap the inotifywait pipeline in a subshell and send it to the background.
+# The 'perform_sync' function is defined in the main script and is inherited by this subshell.
+(
+    inotifywait -r -m -q --format "%w%f %e" --event "$EVENTS" "${SOURCE_DIRS[@]}" | while read -r changed_path event_type; do
+        perform_sync "$changed_path" "$event_type"
+    done
+) & # '&' sends the entire subshell (inotifywait pipeline) to the background
+inotify_pid=$! # Store the PID of the background subshell for later cleanup
+echo "$(date): Background file monitor started (PID: $inotify_pid)."
+echo ""
+
+# --- Start Java Web Server (in Foreground) ---
+
+echo "$(date): Starting Java web server in the foreground..."
+echo "Access your synchronized content at http://localhost:$WEBSERVER_PORT/"
+echo "Press Ctrl+C to stop the web server and the entire script."
+echo ""
+
+# Execute the jwebserver command directly in the foreground.
+# This command will block the script until it exits (e.g., by Ctrl+C).
+# When jwebserver receives Ctrl+C, it will terminate, and then the
+# trap will catch the script's EXIT signal to clean up the background monitor.
+eval "$WEBSERVER_CMD"
+
+# This part of the script will only be reached if jwebserver exits gracefully.
+echo "$(date): Java web server stopped gracefully."
+# The trap will handle the cleanup of the background inotifywait process automatically upon script exit.
