@@ -40,7 +40,7 @@ public class ClockTest extends TooslaTestBase {
         then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo(DEFAULT);
 
         exec("""
-            window.localStorage.setItem("toosla.clock.timezone", "Europe/Paris");
+            window.toosla.storage.setItem("toosla.clock.timezone", "Europe/Paris");
             angular.element($(`#clock`)).controller('clock').setup();
         """);
         then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo("Europe/Paris");
@@ -84,7 +84,7 @@ public class ClockTest extends TooslaTestBase {
         // clock updates every 500ms
         new WaitFor(1000, () -> {
             return
-                "America/New_York".equals(String.valueOf(exec("window.localStorage.getItem('toosla.clock.timezone')")))
+                "America/New_York".equals(String.valueOf(exec("window.toosla.storage.getItem('toosla.clock.timezone')")))
                 &&
                 "Tuesday 31 December 2024".equals(text(".current-date"));
         });
@@ -94,7 +94,7 @@ public class ClockTest extends TooslaTestBase {
     public void change_timezone_settings_does_not_save_if_cancel_is_pressed() throws Exception {
         exec("""
             DateStub.fixedDate = new Date(1735686060000); // 20250101 000101 UTC
-            window.localStorage.setItem("toosla.clock.timezone", "Europe/Rome");
+            window.toosla.storage.setItem("toosla.clock.timezone", "Europe/Rome");
             angular.element($(`#clock`)).controller('clock').setup();
         """); // set stubs and setup the module again
 
@@ -109,14 +109,14 @@ public class ClockTest extends TooslaTestBase {
             return "America/New_York".equals(exec("angular.element($(`#clock`)).controller('clock').currentTimezone"));
         });
         click("#toosla-settings button.btn-cancel"); // click cancel button
-        then(exec("window.localStorage.getItem('toosla.clock.timezone')"))
+        then(exec("window.toosla.storage.getItem('toosla.clock.timezone')"))
             .isEqualTo("Europe/Rome");
         then(exec("angular.element($(`#clock`)).controller('clock').currentTimezone")).isEqualTo("Europe/Rome");
     }
 
     @Test
     public void initialize_settings_form_with_stored_values() throws Exception {
-        exec("window.localStorage.setItem'toosla.clock.timezone', 'Europe/Rome');");
+        exec("window.toosla.storage.setItem'toosla.clock.timezone', 'Europe/Rome');");
         click("#clock button.toosla-btn-settings");  // open settings panel
         new WaitFor(1000, () -> {
             System.out.println(exec("$('#toosla-settings .settings select.timezones').val()"));
