@@ -19,7 +19,7 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-import { Utils } from "../../script/Utils.js";
+import { Utils } from "../../scripts/Utils.js";
 
 export class ThingsController {
 
@@ -99,7 +99,7 @@ export class ThingsController {
                 }
             });
 
-            localStorage.setItem("toosla.things.things", JSON.stringify(this.things));
+            toosla.storage.setItem("toosla.things.things", JSON.stringify(this.things));
         }
 
         this.selectedThing = null;
@@ -122,13 +122,13 @@ export class ThingsController {
                 this.things.push(this.selectedThing);
             }
 
-            localStorage.setItem("toosla.things.things", JSON.stringify(this.things));
+            toosla.storage.setItem("toosla.things.things", JSON.stringify(this.things));
         }
         this.editMode = false;
     }
 
     loadThings() {
-        this.things = JSON.parse(localStorage.getItem('toosla.things.things'));
+        this.things = JSON.parse(toosla.storage.getItem('toosla.things.things'));
     }
 
     title(thing) {
