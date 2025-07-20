@@ -29,14 +29,14 @@ import org.junit.Test;
 public class MainPageTest extends TooslaTestBase {
     @Test
     public void version_displayed_in_main_page() throws Exception {
-        loadPage("index.html");
+        loadPage();
         then(visible("#toosla")).isTrue();
         then(text("#toosla #version")).isEqualTo("@{project.version}");
     }
 
     @Test
     public void console_text_component() {
-        loadPage("index.html");
+        loadPage();
         then(visible("#console")).isTrue();
 
         exec("console.log('log1', 'log2')");
@@ -71,11 +71,11 @@ public class MainPageTest extends TooslaTestBase {
         // Initial media
         //
         initialMedia("{'prefers-color-scheme': 'light'}");
-        loadPage("index.html");
+        loadPage();
 /*        then(classes("html")).doesNotContain("dark-side");
 
         initialMedia("{'prefers-color-scheme': 'dark'}");
-        loadPage("index.html");
+        loadPage();
         then(classes("html")).contains("dark-side");
 
         //

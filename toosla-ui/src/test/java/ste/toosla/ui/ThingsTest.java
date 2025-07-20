@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import static org.assertj.core.api.BDDAssertions.then;
 import org.json.JSONArray;
 import org.junit.Test;
+import ste.xtest.concurrent.WaitFor;
 import ste.xtest.json.api.JSONAssertions;
 
 /**
@@ -136,17 +137,29 @@ public class ThingsTest extends TooslaTestBase {
             $('#things .btn-done').click();  // done
         """);
 
-        JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
-        then(things.getJSONObject(0).getJSONArray("things")).isEmpty();
-        JSONAssertions.then(things.getJSONObject(0))
-            .containsEntry("status", "done")
-            .containsEntry("text", "hello\nworld")
-            .containsEntry("when", "2020-01-01");
+        //
+        // let's complete all async tasks
+        //
+        new WaitFor(() -> {
+            try {
+                final JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
+                then(things.getJSONObject(0).getJSONArray("things")).isEmpty();
+
+                JSONAssertions.then(things.getJSONObject(0))
+                .containsEntry("status", "done")
+                .containsEntry("text", "hello\nworld")
+                .containsEntry("when", "2020-01-01");
+                return true;
+            } catch (AssertionError e) {
+                System.out.println(e);
+                return false;
+            }
+        });
 
         //
         // items stored in local storage
         //
-        things = new JSONArray((String)exec("localStorage.getItem('toosla.things.things');"));
+        final JSONArray things = new JSONArray((String)exec("toosla.storage.getItem('toosla.things.things');"));
         JSONAssertions.then(things).hasSize(1);
         then(things.getJSONObject(0).getJSONArray("things")).isEmpty();
         JSONAssertions.then(things.getJSONObject(0))
@@ -195,9 +208,9 @@ public class ThingsTest extends TooslaTestBase {
         ]
         """;
 
-        exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
+        exec("toosla.storage.setItem('toosla.things.things', `" + THINGS + "`);");
 
-        loadPage("index.html"); // reload the page after saving the things
+        loadPage(); // reload the page after saving the things
         exec("$('#things tr')[1].children[1].click();");
 
         then((Boolean)exec("$('#things .edit-view input[name=status]')[0].checked")).isTrue();
@@ -268,15 +281,15 @@ public class ThingsTest extends TooslaTestBase {
         ]
         """;
 
-        exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
+        exec("toosla.storage.setItem('toosla.things.things', `" + THINGS + "`);");
 
-        loadPage("index.html"); // reload the page after saving the things
+        loadPage(); // reload the page after saving the things
 
         exec("$('#things .btn-bin')[1].click()");  // delete second element
         click("#things .delete-confirm .btn-cancel"); // do not confirm
         then(visible("#things dialog.delete-confirm")).isFalse();
 
-        then(exec("JSON.parse(localStorage.getItem('toosla.things.things')).length ")).isEqualTo(2);
+        then(exec("JSON.parse(toosla.storage.getItem('toosla.things.things')).length ")).isEqualTo(2);
         JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
         JSONAssertions.then(things).hasSize(2);
 
@@ -284,7 +297,7 @@ public class ThingsTest extends TooslaTestBase {
         click("#things .delete-confirm .btn-confirm"); // confirm
         then(visible("#things dialog.delete-confirm")).isFalse();
 
-        then(exec("JSON.parse(localStorage.getItem('toosla.things.things')).length ")).isEqualTo(1);
+        then(exec("JSON.parse(toosla.storage.getItem('toosla.things.things')).length ")).isEqualTo(1);
         things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
         JSONAssertions.then(things).hasSize(1);
         JSONAssertions.then(things.getJSONObject(0))
@@ -293,7 +306,7 @@ public class ThingsTest extends TooslaTestBase {
         exec("$('#things .btn-bin')[0].click()");  // delete second element
         click("#things .delete-confirm .btn-confirm"); // confirm
 
-        then(exec("JSON.parse(localStorage.getItem('toosla.things.things')).length ")).isEqualTo(0);
+        then(exec("JSON.parse(toosla.storage.getItem('toosla.things.things')).length ")).isEqualTo(0);
     }
 
     @Test
@@ -314,8 +327,8 @@ public class ThingsTest extends TooslaTestBase {
             }
         ]
         """;
-        exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
-        loadPage("index.html"); // reload the page after saving the things
+        exec("toosla.storage.setItem('toosla.things.things', `" + THINGS + "`);");
+        loadPage(); // reload the page after saving the things
 
         then(exec("$('#things tr')[1].children[1].innerText.trim()"))
                 .isEqualTo("first line");
@@ -341,8 +354,8 @@ public class ThingsTest extends TooslaTestBase {
             }
         ]
         """;
-        exec("localStorage.setItem('toosla.things.things', `" + THINGS + "`);");
-        loadPage("index.html"); // reload the page after saving the things
+        exec("toosla.storage.setItem('toosla.things.things', `" + THINGS + "`);");
+        loadPage(); // reload the page after saving the things
 
         then((Boolean)exec("$('#things input[name=status]')[0].checked")).isTrue();
         then((Boolean)exec("$('#things input[name=status]')[1].checked")).isFalse();

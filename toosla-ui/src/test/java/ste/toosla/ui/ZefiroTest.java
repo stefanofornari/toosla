@@ -36,6 +36,7 @@ public class ZefiroTest extends TooslaTestBase {
         super.before();
         exec("sessionStorage.setItem('toosla.passwd.pin', '1234');");
     }
+
     @Test
     public void zefiro_displayed_on_page() {
         then(visible("#zefiro")).isTrue();
@@ -136,7 +137,9 @@ public class ZefiroTest extends TooslaTestBase {
             const ctrl = angular.element($('#zefiro')).controller('zefiro');
             ctrl.passwd.saveSecret('1234', { label: 'zefiro.user0', data: 'something' });
         """);
-        loadPage("index.html");
+        loadPage();
         then(visible("#zefiro .card-content .configure-message")).isFalse();
     }
+
+
 }

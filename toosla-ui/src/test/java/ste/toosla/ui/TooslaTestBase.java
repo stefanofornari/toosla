@@ -24,12 +24,14 @@ package ste.toosla.ui;
 import java.io.File;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
+import ste.xtest.concurrent.WaitFor;
 import ste.xtest.web.BugFreeWeb;
 
-/**
- *
- */
 public class TooslaTestBase extends BugFreeWeb {
+
+    private static final int DEFAULT_TIMEOUT = 250;
+
+    protected static final String[] INVALID = new String[]{"undefined", "null", "\"\"", "\" \t\""};
 
     protected String page = "index.html";
 
@@ -39,7 +41,52 @@ public class TooslaTestBase extends BugFreeWeb {
         super.before();
         FileUtils.copyDirectory(new File("src/main/webapp"), localFileServer.root.toFile());
         FileUtils.copyDirectory(new File("src/test/webapp"), localFileServer.root.toFile());
-        loadPage(page);
+        loadPage();
     }
 
+    public Object async(long timeout, final String script) {
+        exec(String.format("""
+            __XTEST__.asyncDone = false;
+            __XTEST__.asyncRet = null;
+
+            p = (%s);
+
+            Promise.all([p]).then((o) => {
+                __XTEST__.asyncRet = o;
+                __XTEST__.asyncDone = true;
+            }).catch((error) => {
+                __XTEST__.asyncRet = error.message;
+                __XTEST__.asyncDone = true;
+            });
+        """, script));
+
+        waitUntilTrue(timeout, "__XTEST__.asyncDone === true");
+
+        return exec("__XTEST__.asyncRet");
+    }
+
+    public Object async(final String script) {
+        return this.async(DEFAULT_TIMEOUT, script);
+    }
+
+    public void waitUntilTrue(final String condition) {
+        waitUntilTrue(DEFAULT_TIMEOUT, condition);
+    }
+
+    public void waitUntilTrue(final long timeout, final String condition) {
+        new WaitFor(timeout, () -> (Boolean)exec(condition));
+    }
+
+    /**
+     * Load the page in @{code page} and wait until toosla.ready is true (within
+     * a timeout).
+     */
+    public void loadPage() {
+        loadPage(page);
+
+        new WaitFor(()-> {
+            Object o = exec("toosla.ready");
+            return (o != null && (boolean)o);
+        });
+    }
 }
