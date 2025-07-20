@@ -137,7 +137,7 @@ export class CalcController {
         let script = document.createElement("script");
         script.type = "text/javascript";
         script.async = true;
-        script.src = "script/math.js";
+        script.src = "scripts/math.js";
         document.body.appendChild(script);
     }
 
