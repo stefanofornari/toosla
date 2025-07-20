@@ -39,7 +39,7 @@ export class PasswordManager {
     }
 
     includes(key) {
-        const item = localStorage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + key);
+        const item = toosla.storage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + key);
         return (item !== null);
     }
 
@@ -62,7 +62,7 @@ export class PasswordManager {
             PasswordManager.ENCODER.encode(secret.data)
         ));
 
-        localStorage.setItem(
+        toosla.storage.setItem(
             PasswordManager.KEY_SECRET_PREFIX + "." + secret.label, JSON.stringify({iv: [...iv], secret: [...encrypted]})
         );
     }
@@ -83,7 +83,7 @@ export class PasswordManager {
         Utils.checkValue("pin", pin);
         Utils.checkValue("label", label);
 
-        const secretPlain = localStorage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
+        const secretPlain = toosla.storage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
 
         if (!secretPlain) {
             throw new Error(`secret '${label}' not found`);
@@ -101,15 +101,15 @@ export class PasswordManager {
                 new Uint8Array(secret.secret).buffer
             ));
 
-            return await PasswordManager.DECODER.decode(clearArray);
+            return PasswordManager.DECODER.decode(clearArray);
         } catch (error) {
             throw new Error(`unable to load secret '${label}' (${error.message})`);
         }
     }
 
-    async removeSecret(label) {
+    removeSecret(label) {
         Utils.checkValue("label", label);
-        localStorage.removeItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
+        toosla.storage.removeItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
     }
 
     async deriveKeyFromPin(pin) {
@@ -141,8 +141,8 @@ export class PasswordManager {
         const prefix = PasswordManager.KEY_SECRET_PREFIX + "." + namespace;
 
         const ret = [];
-        for (let i=0; i<localStorage.length; ++i) {
-            const l = localStorage.key(i);
+        for (let i=0; i<toosla.storage.length; ++i) {
+            const l = toosla.storage.key(i);
 
             if (l.startsWith(prefix)) {
                 ret.push(l.substring(prefix.length));
