@@ -5,10 +5,11 @@
     </head>
 
     <body>
-        <script src="script/PasswordManager.js" type="module"></script>
+        <script src="scripts/toosla.js" type="module"></script>
         <script type="module">
-            import { PasswordManager } from './script/PasswordManager.js';
+            import { PasswordManager } from './scripts/PasswordManager.js';
             window.passwd = new PasswordManager();
+            toosla.ready = true;
         </script>
     </body>
 </html>
