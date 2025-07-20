@@ -133,7 +133,7 @@ export class ClockController {
 
     loadSettings() {
         try {
-            const TZ = localStorage.getItem(CONFIG_CLOCK_TIMEZONE);
+            const TZ = toosla.storage.getItem(CONFIG_CLOCK_TIMEZONE);
             if (TZ) {
                 this.timeZone(TZ); return;
             }
@@ -150,7 +150,7 @@ export class ClockController {
 
     saveSettings(tz) {
         try {
-            localStorage.setItem(CONFIG_CLOCK_TIMEZONE, tz);
+            toosla.storage.setItem(CONFIG_CLOCK_TIMEZONE, tz);
         } catch (e) {
             console.error("Error writing TZ to local storage");
         }

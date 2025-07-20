@@ -32,29 +32,37 @@ import ste.xtest.json.api.JSONAssertions;
  */
 public class PasswordManagerTest extends TooslaTestBase {
 
-    private static final String[] INVALID = new String[]{"undefined", "null", "\"\"", "\" \t\""};
+    public PasswordManagerTest() {
+        this.page = "passwd.html";
+    }
 
     @Before
     @Override
     public void before() throws Exception {
         super.before();
-        loadPage("passwd.html");
+
+        //
+        // making sure passwd has been initialized
+        //
+        new WaitFor(() -> {
+            return (exec("window.passwd") != null);
+        });
     }
 
     @Test
     public void save_secret() throws Exception {
-        final int n = (int) exec("localStorage.length");
+        final int n = (int) exec("toosla.storage.length");
 
         exec("passwd.saveSecret('1234', { label:'label1', data: 'hello world'});");
 
-        then(exec("localStorage.length")).isEqualTo(n + 1);
-        JSONObject secret1 = new JSONObject((String) exec("localStorage.getItem('toosla.passwd.secret.label1');"));
+        then(exec("toosla.storage.length")).isEqualTo(n + 1);
+        JSONObject secret1 = new JSONObject((String) exec("toosla.storage.getItem('toosla.passwd.secret.label1');"));
         JSONAssertions.then(secret1).contains("iv").contains("secret");
 
         exec("passwd.saveSecret('5678', { label:'label2', data: 'hello world'});");
 
-        then(exec("localStorage.length")).isEqualTo(n + 2);
-        JSONObject secret2 = new JSONObject((String) exec("localStorage.getItem('toosla.passwd.secret.label2');"));
+        then(exec("toosla.storage.length")).isEqualTo(n + 2);
+        JSONObject secret2 = new JSONObject((String) exec("toosla.storage.getItem('toosla.passwd.secret.label2');"));
         JSONAssertions.then(secret2).contains("iv").contains("secret");
 
         //
@@ -133,17 +141,12 @@ public class PasswordManagerTest extends TooslaTestBase {
 
     @Test
     public void load_secret() throws Exception {
-        exec("""
-            secrets = [];
+        async("""
             Promise.all([
                 passwd.saveSecret('1234', { label:'label1', data: 'hello world' }),
                 passwd.saveSecret('5678', { label:'label2', data: 'hello universe' })
-            ]).then((values) => {
-                secrets.push(...values) ;
-            });
+            ])
         """);
-
-        new WaitFor(500, () -> (Boolean) exec("(secrets && secrets.length == 2)"));
 
         exec("""
             secrets = [];
@@ -177,23 +180,13 @@ public class PasswordManagerTest extends TooslaTestBase {
     @Test
     public void load_secret_sanity_check() {
         for (final String VALUE : INVALID) {
-            exec(String.format("""
-                e = "";
-                passwd.loadSecret(%s, "label").catch((error) => {
-                    e = error.toString();
-                });
-            """, VALUE));
-            then(exec("e")).isEqualTo("Error: pin can not be null or empty");
+            async(String.format("passwd.loadSecret(%s, 'label')", VALUE));
+            then(exec("__XTEST__.asyncRet")).isEqualTo("pin can not be null or empty");
         }
 
         for (final String VALUE : INVALID) {
-            exec(String.format("""
-                e = "";
-                passwd.loadSecret("1234", %s).catch((error) => {
-                    e = error.toString();
-                });
-            """, VALUE));
-            then(exec("e")).isEqualTo("Error: label can not be null or empty");
+            async(String.format("passwd.loadSecret('1234', %s)", VALUE));
+            then(exec("__XTEST__.asyncRet")).isEqualTo("label can not be null or empty");
         }
     }
 
@@ -208,23 +201,15 @@ public class PasswordManagerTest extends TooslaTestBase {
 
         new WaitFor(500, () -> (Boolean) exec("(secrets && secrets.length == 1)"));
 
-        exec("""
-            secret = {};
-            passwd.removeSecret("label1").then(() => {
-               secret = localStorage.getItem("toosla.passwd.secret.label1");
-            });
-        """);
+        then(exec("""
+            passwd.removeSecret("label1");
+            secret = toosla.storage.getItem("toosla.passwd.secret.label1");
+        """)).isNull();
 
-        new WaitFor(500, () -> exec("(secret)") == null);
-
-        exec("""
-            done = false;
-            passwd.removeSecret("not_exist").then(() => {
-               done = true;
-            });
-        """);
-
-        new WaitFor(500, () -> (Boolean) exec("(done)"));
+        //
+        // just run without errors...
+        //
+        exec("passwd.removeSecret('not_exist')");
     }
 
     @Test
@@ -232,11 +217,13 @@ public class PasswordManagerTest extends TooslaTestBase {
         for (final String VALUE : INVALID) {
             exec(String.format("""
                 e = "";
-                passwd.removeSecret(%s).catch((error) => {
-                    e = error.toString();
-                });
+                try {
+                    passwd.removeSecret(%s);
+                } catch(error) {
+                    e = error.message;
+                };
             """, VALUE));
-            then(exec("e")).isEqualTo("Error: label can not be null or empty");
+            then(exec("e")).isEqualTo("label can not be null or empty");
         }
     }
 
