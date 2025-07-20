@@ -20,10 +20,12 @@
  */
 
 import { PasswordManager } from "./PasswordManager.js";
+//import { ZefiroService } from "./ZefiroService.js";
 
 const tooslaModule = angular.module('Toosla', []);
 
 tooslaModule.factory('passwd', PasswordManager);
+//tooslaModule.factory('zefiro', ZefiroService);
 
 for (const [name, controller] of toosla.modules()) {
     tooslaModule.component(name, {

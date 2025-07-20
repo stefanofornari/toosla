@@ -20,12 +20,18 @@
  */
 
 import { PasswordManager } from "./PasswordManager.js";
+import { TooslaStorage } from "./TooslaStorage.js";
 
 export class Toosla {
     version = "@{project.version}";
     build = "@{buildTimestamp}";
     ready = false;
 
+    get storage() {
+        return this.#storage;
+    }
+
+    #storage = new TooslaStorage("change:me");
     #modules = new Map();
 
     setup() {
@@ -159,8 +165,6 @@ class TooslaController {
     }
 
     moduleSettings(module, action, status) {
-        console.debug("Toosla settings clicked for", module, action, status);
-
         const controller = angular.element($(`#${module}`)).controller(module);
 
         if (action === "close") {
