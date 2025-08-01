@@ -21,8 +21,10 @@
 package ste.toosla.ui;
 
 import static org.assertj.core.api.BDDAssertions.then;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
+import ste.xtest.json.api.JSONAssertions;
 
 /**
  * Get root folder
@@ -133,26 +135,44 @@ public class TooslaStorageTest extends TooslaTestBase {
     }
 
     @Test
-    public void setItem_in_both_local_and_remote_storage() throws Exception {
+    public void setItem_updates_values_in_local_and_remote_storage() throws Exception {
         login();
+
+        exec("tooslaStorage.lastModified = new Date('2020-12-20T01:01:01Z')");
 
         //
         // a first value
         //
+
         exec("tooslaStorage.setItem('key1', 'value1')");
         then(exec("localStorage.getItem('toosla.key1')")).isEqualTo("value1");
         waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
-        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')"))
-            .isEqualTo("{\"toosla.key1\":\"value1\"}");
-
+        JSONObject o = new JSONObject(
+            (String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")
+        );
+        JSONAssertions.then(o)
+            .hasSize(2)
+            .containsEntry("toosla.key1", "value1");
+        then(o.getString("lastModified")).matches("[\\dTZ.:+-]+");
         //
         // another value
         //
         exec("tooslaStorage.setItem('key2', 'value2')");
         then(exec("localStorage.getItem('toosla.key2')")).isEqualTo("value2");
         waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
-        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')"))
-            .isEqualTo("{\"toosla.key2\":\"value2\",\"toosla.key1\":\"value1\"}");
+        o = new JSONObject(
+            ((String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')"))
+        );
+        JSONAssertions.then(o)
+            .hasSize(3)
+            .containsEntry("toosla.key1", "value1")
+            .containsEntry("toosla.key2", "value2");
+        then(o.getString("lastModified")).matches("[\\dTZ.:+-]+");
+
+        //
+        // lastModified has been updated
+        //
+        then(exec("tooslaStorage.lastModified.toISOString()")).isEqualTo(o.getString("lastModified"));
     }
 
     @Test
@@ -257,11 +277,15 @@ public class TooslaStorageTest extends TooslaTestBase {
         then(exec("localStorage.getItem('toosla.key2')")).isNull();
         then(exec("localStorage.getItem('another.key')")).isEqualTo("anotherValue");
         waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
-        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")).isEqualTo("{}");
+        JSONObject o = new JSONObject(
+            (String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")
+        );
+        JSONAssertions.then(o).hasSize(1);
+        then(o.getString("lastModified")).matches("[\\dTZ.:+-]+");
     }
 
     @Test
-    public void sync_loads_remote_storage() throws Exception {
+    public void sync_loads_remote_storage_if_more_recent() throws Exception {
         //
         // given some items in the local storage
         //
@@ -286,6 +310,42 @@ public class TooslaStorageTest extends TooslaTestBase {
         then(exec("tooslaStorage.getItem('remoteKey1')")).isEqualTo("remoteValue1");
         then(exec("tooslaStorage.getItem('remoteKey2')")).isEqualTo("remoteValue2");
         then(exec("tooslaStorage.getItem('localKey1')")).isNull(); // Local item should be overwritten
+
+        //
+        // and other items in localStorage are unaffected
+        //
+        then(exec("localStorage.getItem('another.key')")).isEqualTo("anotherValue");
+    }
+
+    @Test
+    public void sync_does_not_load_remote_storage_if_less_recent() throws Exception {
+        //
+        // given some items in the local storage
+        //
+        exec("localStorage.setItem('toosla.localKey1', 'localValue1')");
+        exec("localStorage.setItem('another.key', 'anotherValue')");
+
+        //
+        // and a remote storage with some content updated in the past
+        //
+        exec("localStorage.setItem('/OneMediaHub/Toosla/data.json', '{\"lastModified\":\"2020-12-20T01:01:01Z\",\"toosla.remoteKey1\":\"remoteValue1\", \"toosla.remoteKey2\":\"remoteValue2\"}');");
+
+        //
+        // Syncing
+        //
+        login();
+        exec("tooslaStorage.lastModified = new Date('2025-08-01T14:30:00Z')");
+        async("tooslaStorage.sync()");
+        then(exec("tooslaStorage.changeStatus")).isEqualTo("clean");
+
+        //
+        // then toosla storage contains existing values and remote storage
+        // the local changes; plus, the last update timestap is the same as
+        // the local one.
+        //
+        then((int)exec("tooslaStorage.length")).isEqualTo(1);
+        then(exec("tooslaStorage.getItem('remoteKey1')")).isNull();
+        then(exec("tooslaStorage.getItem('localKey1')")).isEqualTo("localValue1");
 
         //
         // and other items in localStorage are unaffected
@@ -330,13 +390,21 @@ public class TooslaStorageTest extends TooslaTestBase {
         then((int)exec("tooslaStorage.length")).isEqualTo(1);
         then(exec("tooslaStorage.getItem('key1');")).isNull();
         waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
-        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")).isEqualTo("{\"toosla.key2\":\"value2\"}");
+        JSONObject o = new JSONObject(
+            (String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")
+        );
+        JSONAssertions.then(o).hasSize(2).containsEntry("toosla.key2", "value2");
+        then(o.getString("lastModified")).matches("[\\dTZ.:+-]+");
 
         exec("tooslaStorage.removeItem('key2');");
         then((int)exec("tooslaStorage.length")).isEqualTo(0);
         then(exec("tooslaStorage.getItem('key2');")).isNull();
         waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
-        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")).isEqualTo("{}");
+        o = new JSONObject(
+            (String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json')")
+        );
+        JSONAssertions.then(o).hasSize(1);
+        then(o.getString("lastModified")).matches("[\\dTZ.:+-]+");
 
         then(exec("localStorage.getItem('another.key')")).isEqualTo("anotherValue");
 

@@ -65,10 +65,7 @@ async function read(request) {
 
     try {
         const body = await request.json();
-        console.debug("body", JSON.stringify(body));
-
         const key = authKey(request);
-        console.debug("authorization key", key);
 
         if (!key) {
             return new MockServiceWorker.HttpResponse("invalid authorization header", {
@@ -77,15 +74,33 @@ async function read(request) {
             });
         }
 
-        const content = localStorage.getItem(ROOT_PREFIX + body.path);
-        console.debug("content", content, "-", JSON.parse(content));
-        if (content) {
-            return MockServiceWorker.HttpResponse.json(JSON.parse(content));
+        // Get the stored item from our mock database (localStorage)
+        const storedItem = localStorage.getItem(ROOT_PREFIX + body.path);
+        if (!storedItem) {
+            return new MockServiceWorker.HttpResponse("not found", {
+                status: 404
+            });
         }
 
-        return new MockServiceWorker.HttpResponse("not found", {
-            status: 404,
-            statusText: "not found"
+        console.debug("storedItem", storedItem);
+
+        // The stored item is a JSON string containing the content and the server's timestamp
+        const storedData = JSON.parse(storedItem);
+        const serverLastModified = storedData.lastModified ? Date.parse(storedData.lastModified) : null;
+
+        // Get the client's timestamp from the header
+        const clientIfModifiedSince = Date.parse(request.headers.get("If-Modified-Since"));
+
+        // If the client's version is up-to-date, send back 304 Not Modified
+        if (clientIfModifiedSince && serverLastModified && serverLastModified <= clientIfModifiedSince) {
+            return new MockServiceWorker.HttpResponse("not modified", { status: 304 });
+        }
+
+        // Otherwise, send back the content and the server's timestamp in the Last-Modified header
+        return MockServiceWorker.HttpResponse.json(storedData, {
+            headers: {
+                "Last-Modified": serverLastModified ? new Date(serverLastModified).toUTCString() : new Date().toUTCString()
+            }
         });
     } catch (e) {
         console.error(e);
@@ -97,9 +112,6 @@ async function read(request) {
 async function write(request) {
     console.debug("handling save API");
     try {
-        const url = new URL(request.url);
-        const queryParams = url.searchParams;
-
         const key = authKey(request);
         console.debug("authorization key", key);
 
@@ -112,13 +124,30 @@ async function write(request) {
 
         const item = await request.json();
         const fullPath = ROOT_PREFIX + item.path;
-        console.debug("fullPath", fullPath);
+
+        const storedItem = localStorage.getItem(fullPath);
+        const storedData = storedItem ? JSON.parse(storedItem) : {};
+        const serverLastModified = storedData.lastModified ? Date.parse(storedData.lastModified) : null;
+
+        const clientIfUnmodifiedSince = Date.parse(request.headers.get("If-Unmodified-Since"));
+
+        // Conflict: The client's version is stale.
+        if (clientIfUnmodifiedSince && serverLastModified && serverLastModified > clientIfUnmodifiedSince) {
+            return new MockServiceWorker.HttpResponse("the server has more recent data", { status: 412 });
+        }
+
+        // Success: Update the data and the timestamp.
+        const newLastModified = new Date();
+        item.content.lastModified = newLastModified.toISOString();
+
         localStorage.setItem(fullPath, JSON.stringify(item.content));
 
         dumpLocalStorage();
-        return new MockServiceWorker.HttpResponse("error", {
+        return new MockServiceWorker.HttpResponse("OK", {
             status: 200,
-            statusText: item.path
+            headers: {
+                "Last-Modified": newLastModified.toISOString()
+            }
         });
     } catch (e) {
         console.error(e);

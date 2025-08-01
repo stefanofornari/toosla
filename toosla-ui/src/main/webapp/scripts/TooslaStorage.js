@@ -45,6 +45,7 @@ export class TooslaStorage {
     validationKey = null;
     linkStatus = "unlinked";
     changeStatus = "clean";
+    lastModified = null;
 
     constructor(credentials) {
         Utils.checkValue("credentials", credentials);
@@ -97,21 +98,35 @@ export class TooslaStorage {
         }
     }
 
-    //
-    // TODO: review sync logic and
-    //
+    /**
+     * Sync logi is as follows
+     *
+     * 1. retrieve server version only if more recent
+     * 2. if a more recent version is available, the entire local storage is
+     *    replaced with the server storage
+     *
+     * @returns {undefined}
+     */
     async sync() {
-        console.debug("sync");
+        console.debug("sync", this.lastModified);
 
         try {
+            const headers = {
+                "authorization": `token ${this.validationKey}`
+            };
+
+            if (this.lastModified) {
+                headers["If-Modified-Since"] = this.lastModified.toISOString();
+            }
+
             let response = await fetch(TOOSLA_API_STORAGE_READ, {
                 method: "POST",
-                headers: {
-                    "constent-type": "application/json",
-                    "authorization":  `token ${this.validationKey}`
-                },
-                body: "{\"path\": \"/Toosla/data.json\"}"
+                headers: headers,
+                body: JSON.stringify({
+                    "path": "/Toosla/data.json"
+                })
             });
+
             console.debug("downloading done", response.statusText);
             if (response.ok) {
                 //
@@ -123,7 +138,7 @@ export class TooslaStorage {
                 // Store the values from remote in localStore
                 //
                 const remoteData = await response.json();
-                console.debug("remoteData", remoteData);
+                console.debug("remoteData", JSON.stringify(remoteData));
                 for (const key in remoteData) {
                     //
                     // All keys should be toosla keys (starting with toosla.)
@@ -131,9 +146,14 @@ export class TooslaStorage {
                     console.debug("remote key", key);
                     localStorage.setItem(key, remoteData[key]);
                 }
+                this.lastModified = Date.parse(response.headers.get("Last-Modified"));
                 this.changeStatus = CHANGE_STATUS_CLEAN;
             } else {
-                if (response.status === 404) {
+                if (response.status === 304) {
+                    // Not Modified
+                    console.debug("local storage up-to-date");
+                    this.changeStatus = CHANGE_STATUS_CLEAN;
+                } else if (response.status === 404) {
                     //
                     // 3. Create the Toosla folder and store the storage file if not
                     //    existing already
@@ -153,17 +173,24 @@ export class TooslaStorage {
 
 
     /**
-     * Save localStorage to the remote storage
+     * Save localStorage to the remote storage. Note that the If-Unmodified-Since
+     * logic is implemented so that potentially the local changes may be refused
+     * by the server. It is up to the server decide when accept changes.
      */
     async saveLocalStorage() {
-        console.debug("saveLocalStorage");
         try {
+            const headers = {
+                "Content-Type": "application/json",
+                "authorization":  `token ${this.validationKey}`
+            };
+
+            if (this.lastModified) {
+                headers["If-Unmodified-Since"] = new Date(this.lastModified).toISOString();
+            }
+
             const response = await fetch(TOOSLA_API_STORAGE_WRITE, {
                 method: "POST",
-                headers: {
-                    "constent-type": "application/json",
-                    "authorization":  `token ${this.validationKey}`
-                },
+                headers: headers,
                 body: JSON.stringify({
                     "path": "/Toosla/data.json",
                     "content": this.tooslaLocalStorage()
@@ -172,6 +199,8 @@ export class TooslaStorage {
             if (!response.ok) {
                 throw new Error(await response.text());
             }
+            this.lastModified = new Date(response.headers.get("Last-Modified"));
+            
             return response;
         } catch (error) {
             console.info("[TooslaStorage}", "unable to save changes to the remote storage due to a network or unexpected error, working offline");
@@ -193,6 +222,7 @@ export class TooslaStorage {
         console.debug("setItem", key, value);
         Utils.checkValue("key", key);
         localStorage.setItem(TOOSLA_KEY_PREFIX + key, value);
+        this.lastUpdated = new Date();
         this.changeStatus = CHANGE_STATUS_DIRTY;
         this.saveLocalStorage()
         .then(() => {
