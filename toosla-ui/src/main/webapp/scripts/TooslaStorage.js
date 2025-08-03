@@ -108,7 +108,7 @@ export class TooslaStorage {
      * @returns {undefined}
      */
     async sync() {
-        console.debug("sync", this.lastModified);
+        console.debug("start sync", this.lastModified);
 
         try {
             const headers = {
@@ -163,8 +163,9 @@ export class TooslaStorage {
                     this.changeStatus = CHANGE_STATUS_CLEAN;
                 }
             }
+            console.debug("end sync", this.lastModified);
         } catch (error) {
-            console.info("[TooslaStorage}", "unable to read the remote storage due to a network or unexpected error, working offline");
+            console.info("[TooslaStorage]", "unable to read the remote storage due to a network or unexpected error, working offline");
             console.error(error);
             console.error(error.stack);
             throw error;
@@ -200,10 +201,10 @@ export class TooslaStorage {
                 throw new Error(await response.text());
             }
             this.lastModified = new Date(response.headers.get("Last-Modified"));
-            
+
             return response;
         } catch (error) {
-            console.info("[TooslaStorage}", "unable to save changes to the remote storage due to a network or unexpected error, working offline");
+            console.info("[TooslaStorage]", "unable to save changes to the remote storage due to a network or unexpected error, working offline");
             throw error;
         }
     }
@@ -278,7 +279,7 @@ export class TooslaStorage {
         return count;
     }
 
-    clear() {
+    clear(localOnly = false) {
         for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i);
             if (key.startsWith(TOOSLA_KEY_PREFIX)) {
@@ -286,14 +287,16 @@ export class TooslaStorage {
             }
         }
         this.changeStatus = CHANGE_STATUS_DIRTY;
-        this.saveLocalStorage()
-        .then(() => {
-            this.changeStatus = CHANGE_STATUS_CLEAN;
-        })
-        .catch((error) => {
-            console.error(error);
-            throw error;
-        });
+        if (!localOnly) {
+            this.saveLocalStorage()
+            .then(() => {
+                this.changeStatus = CHANGE_STATUS_CLEAN;
+            })
+            .catch((error) => {
+                console.error(error);
+                throw error;
+            });
+        }
     }
 
     tooslaLocalStorage() {

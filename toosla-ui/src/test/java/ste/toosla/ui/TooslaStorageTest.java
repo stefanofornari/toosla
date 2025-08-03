@@ -180,7 +180,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         login();
 
         //
-        // given a key/value in the local storage
+        // given a key/value in the local and remote storage
         //
         exec("localStorage.setItem('toosla.key1', 'value1')");
         exec("localStorage.setItem('/OneMediaHub/Toosla/data.json', '{\"toosla.key1\":\"value2\"}')");
@@ -204,6 +204,10 @@ public class TooslaStorageTest extends TooslaTestBase {
         exec("localStorage.setItem('toosla.key2', 'value2')");
         then((int)exec("tooslaStorage.length")).isEqualTo(2);
         exec("localStorage.setItem('another.key', 'anotherValue')"); // Should not be counted
+
+        //
+        // Given some items in the remote storage
+        //
         exec("localStorage.setItem('/OneMediaHub/Toosla/data.json', '{\"toosla.key3\":\"value3\"}');"); // Remote storage, should not be counted
 
         //
@@ -283,6 +287,38 @@ public class TooslaStorageTest extends TooslaTestBase {
         JSONAssertions.then(o).hasSize(1);
         then(o.getString("lastModified")).matches("[\\dTZ.:+-]+");
     }
+
+    @Test
+     public void clear_local_or_both_storage() throws Exception {
+        login();
+        //
+        // given some items in the local storage
+        //
+        exec("localStorage.setItem('toosla.localKey1', 'localValue1')");
+
+        //
+        // and a remote storage with some content updated in the past
+        //
+        exec("localStorage.setItem('/OneMediaHub/Toosla/data.json', '{\"lastModified\":\"2020-12-20T01:01:01Z\",\"toosla.remoteKey1\":\"remoteValue1\", \"toosla.remoteKey2\":\"remoteValue2\"}');");
+
+        //
+        // clear local only
+        //
+        exec("tooslaStorage.clear(true);");
+
+        then(exec("localStorage.getItem('toosla.localKey1')")).isNull();
+        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json');")).isNotNull();
+
+        //
+        // clear both local and remote storage
+        //
+        exec("localStorage.setItem('toosla.localKey1', 'localValue1')");
+        exec("tooslaStorage.clear(false);");
+
+        then(exec("localStorage.getItem('toosla.localKey1')")).isNull();
+        JSONAssertions.then(new JSONObject((String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json');")))
+            .hasSize(1).contains("lastModified");
+     }
 
     @Test
     public void sync_loads_remote_storage_if_more_recent() throws Exception {
