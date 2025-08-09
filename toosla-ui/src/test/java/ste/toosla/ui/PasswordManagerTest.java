@@ -51,18 +51,18 @@ public class PasswordManagerTest extends TooslaTestBase {
 
     @Test
     public void save_secret() throws Exception {
-        final int n = (int) exec("toosla.storage.length");
+        final int n = (int) exec("localStorage.length");
 
         exec("passwd.saveSecret('1234', { label:'label1', data: 'hello world'});");
 
-        then(exec("toosla.storage.length")).isEqualTo(n + 1);
-        JSONObject secret1 = new JSONObject((String) exec("toosla.storage.getItem('toosla.passwd.secret.label1');"));
+        then(exec("localStorage.length")).isEqualTo(n + 1);
+        JSONObject secret1 = new JSONObject((String) exec("localStorage.getItem('passwd.secret.label1');"));
         JSONAssertions.then(secret1).contains("iv").contains("secret");
 
         exec("passwd.saveSecret('5678', { label:'label2', data: 'hello world'});");
 
-        then(exec("toosla.storage.length")).isEqualTo(n + 2);
-        JSONObject secret2 = new JSONObject((String) exec("toosla.storage.getItem('toosla.passwd.secret.label2');"));
+        then(exec("localStorage.length")).isEqualTo(n + 2);
+        JSONObject secret2 = new JSONObject((String) exec("localStorage.getItem('passwd.secret.label2');"));
         JSONAssertions.then(secret2).contains("iv").contains("secret");
 
         //
@@ -203,7 +203,7 @@ public class PasswordManagerTest extends TooslaTestBase {
 
         then(exec("""
             passwd.removeSecret("label1");
-            secret = toosla.storage.getItem("toosla.passwd.secret.label1");
+            secret = toosla.storage.getItem("passwd.secret.label1");
         """)).isNull();
 
         //
@@ -229,20 +229,20 @@ public class PasswordManagerTest extends TooslaTestBase {
 
     @Test
     public void get_existing_pin_from_session_storage() {
-        exec("sessionStorage.setItem('toosla.passwd.pin', '1234')");
+        exec("sessionStorage.setItem('passwd.pin', '1234')");
         then(exec("passwd.pin")).isEqualTo("1234");
 
-        exec("sessionStorage.setItem('toosla.passwd.pin', '5678')");
+        exec("sessionStorage.setItem('passwd.pin', '5678')");
         then(exec("passwd.pin")).isEqualTo("5678");
     }
 
     @Test
     public void set_pin_to_session_storage() {
         exec("passwd.pin='1234'");
-        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("1234");
+        then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("1234");
 
         exec("passwd.pin='5678'");
-        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("5678");
+        then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("5678");
     }
 
     @Test

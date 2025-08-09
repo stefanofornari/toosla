@@ -27,12 +27,17 @@ export class Toosla {
     build = "@{buildTimestamp}";
     ready = false;
 
+    #passwd  = new PasswordManager();
+    #storage = new TooslaStorage(this.#passwd);
+    #modules = new Map();
+
     get storage() {
         return this.#storage;
     }
 
-    #storage = new TooslaStorage("change:me");
-    #modules = new Map();
+    get passwordManager() {
+        return this.#passwd;
+    }
 
     setup() {
         console.debug("Toosla setup start");

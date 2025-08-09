@@ -82,14 +82,28 @@ public class TooslaStorageTest extends TooslaTestBase {
         //
         // login ok
         //
-        exec("tooslaStorage = new TooslaStorage('username123:password1');");
+        exec("""
+            const PIN = "123abc";
+            const passwd = new PasswordManager();
+            passwd.pin = PIN;
+            passwd.saveSecret(PIN, {
+                label: "storage.credentials",
+                data: "username123:password1"
+            });
+            const tooslaStorage = new TooslaStorage(passwd);
+        """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username123");
         then(exec("tooslaStorage.validationKey")).isEqualTo("key-username123:password1");
         then(exec("tooslaStorage.linkStatus")).isEqualTo("linked");
         then((String)exec("__XTEST__.log")).contains("I TooslaStorage connected with account username123\n");
 
-        exec("tooslaStorage = new TooslaStorage('username456:password2')");
+        exec("""
+            passwd.saveSecret(PIN, {
+                label: "storage.credentials",
+                data: "username456:password2"
+            });
+        """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username456");
         then(exec("tooslaStorage.validationKey")).isEqualTo("key-username456:password2");
@@ -99,7 +113,12 @@ public class TooslaStorageTest extends TooslaTestBase {
         //
         // special characters
         //
-        exec("tooslaStorage = new TooslaStorage('username%&=?!:@=%56ò&?-\\\"\\'')");
+        exec("""
+            passwd.saveSecret(PIN, {
+                label: "storage.credentials",
+                data: 'username%&=?!:@=%56ò&?-\\\"\\''
+            });
+        """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username%&=?!");
         then(exec("tooslaStorage.validationKey")).isEqualTo("key-username%&=?!:@=%56ò&?-\"\'");
@@ -108,30 +127,17 @@ public class TooslaStorageTest extends TooslaTestBase {
         //
         // invalid credentials - 401
         //
-        exec("tooslaStorage = new TooslaStorage('fail-401:nopass');");
+        exec("""
+            passwd.saveSecret(PIN, {
+                label: "storage.credentials",
+                data: "fail-401:nopass"
+            });
+        """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isNull();
         then(exec("tooslaStorage.validationKey")).isNull();
         then(exec("tooslaStorage.linkStatus")).isEqualTo("unlinked");
         then((String)exec("__XTEST__.log")).contains("TooslaStorage unable to link the remote storage: the provided credentials are not authorized\n");
-    }
-
-    @Test
-    public void credentials_with_special_cases() throws Exception {
-        //
-        // no username
-        //
-        for (final String VALUE : INVALID) {
-            exec(String.format("""
-                e = "";
-                try {
-                    new TooslaStorage(%s);
-                } catch (error) {
-                    e = error.message;
-                }
-            """, VALUE));
-            then(exec("e")).isEqualTo("credentials can not be null or empty");
-        }
     }
 
     @Test
@@ -390,28 +396,6 @@ public class TooslaStorageTest extends TooslaTestBase {
     }
 
     @Test
-    public void constructor_stores_credentials() throws Exception {
-        // Test successful credential storage
-        exec("tooslaStorage = new TooslaStorage('testUser1:testPass1');");
-        then(exec("tooslaStorage.credentials")).isEqualTo("testUser1:testPass1");
-        exec("tooslaStorage = new TooslaStorage('testUser2:testPass2');");
-        then(exec("tooslaStorage.credentials")).isEqualTo("testUser2:testPass2");
-
-        // Test null credentials
-        for (final String VALUE : INVALID) {
-            exec(String.format("""
-                e = "";
-                try {
-                    tooslaStorage = new TooslaStorage(%s);
-                } catch(error) {
-                    e = error.toString();
-                }
-            """, VALUE));
-            then(exec("e")).isEqualTo("Error: credentials can not be null or empty");
-        }
-    }
-
-    @Test
     public void removeItem_deletes_only_toosla_prefixed_items() throws Exception {
         login();
 
@@ -499,6 +483,16 @@ public class TooslaStorageTest extends TooslaTestBase {
     // --------------------------------------------------------- private methods
 
     private void login() throws Exception {
-        exec("tooslaStorage = new TooslaStorage('username123:password1'); tooslaStorage.login();");
+        exec("""
+            const PIN = "123abc";
+            const passwd = new PasswordManager();
+            passwd.pin = PIN;
+            passwd.saveSecret(PIN, {
+                label: "storage.credentials",
+                data: "username123:password1"
+            });
+            const tooslaStorage = new TooslaStorage(passwd);
+        """);
+        async("tooslaStorage.login()");
     }
 }

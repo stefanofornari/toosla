@@ -24,8 +24,8 @@ export class PasswordManager {
     static ENCODER = new TextEncoder();
     static DECODER = new TextDecoder();
 
-    static KEY_PIN = "toosla.passwd.pin";
-    static KEY_SECRET_PREFIX = "toosla.passwd.secret";
+    static KEY_PIN = "passwd.pin";
+    static KEY_SECRET_PREFIX = "passwd.secret";
 
     constructor() {
     }
@@ -39,7 +39,7 @@ export class PasswordManager {
     }
 
     includes(key) {
-        const item = toosla.storage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + key);
+        const item = localStorage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + key);
         return (item !== null);
     }
 
@@ -62,7 +62,7 @@ export class PasswordManager {
             PasswordManager.ENCODER.encode(secret.data)
         ));
 
-        toosla.storage.setItem(
+        localStorage.setItem(
             PasswordManager.KEY_SECRET_PREFIX + "." + secret.label, JSON.stringify({iv: [...iv], secret: [...encrypted]})
         );
     }
@@ -83,7 +83,7 @@ export class PasswordManager {
         Utils.checkValue("pin", pin);
         Utils.checkValue("label", label);
 
-        const secretPlain = toosla.storage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
+        const secretPlain = localStorage.getItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
 
         if (!secretPlain) {
             throw new Error(`secret '${label}' not found`);
@@ -109,7 +109,7 @@ export class PasswordManager {
 
     removeSecret(label) {
         Utils.checkValue("label", label);
-        toosla.storage.removeItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
+        localStorage.removeItem(PasswordManager.KEY_SECRET_PREFIX + "." + label);
     }
 
     async deriveKeyFromPin(pin) {
@@ -141,8 +141,8 @@ export class PasswordManager {
         const prefix = PasswordManager.KEY_SECRET_PREFIX + "." + namespace;
 
         const ret = [];
-        for (let i=0; i<toosla.storage.length; ++i) {
-            const l = toosla.storage.key(i);
+        for (let i=0; i<localStorage.length; ++i) {
+            const l = localStorage.key(i);
 
             if (l.startsWith(prefix)) {
                 ret.push(l.substring(prefix.length));

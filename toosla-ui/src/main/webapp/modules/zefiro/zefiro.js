@@ -62,21 +62,28 @@ export class ZefiroController {
             }
         } else if (action === 'close') {
             if (status === 1) {
-                // save settings
+                //
+                // remove existing accounts and save this one
+                //
+                for (let cred of this.passwd.labels("zefiro")) {
+                    await this.passwd.removeSecret("zefiro." + cred);
+                }
                 await this.passwd.saveSecret(
                     this.passwd.pin, {
                         label: "zefiro." + this.scope.credentials.username,
                         data: this.scope.credentials.password
                     }
                 );
+
                 //
-                // remove any additional zefiro credentials
+                // the same credentials are used to access the remote storage
                 //
-                for (let cred of this.passwd.labels("zefiro")) {
-                    if (cred !== this.scope.credentials.username) {
-                        await this.passwd.removeSecret("zefiro." + cred);
+                await this.passwd.saveSecret(
+                    this.passwd.pin, {
+                        label: "storage.credentials",
+                        data: this.scope.credentials.username + ':' + this.scope.credentials.password
                     }
-                }
+                );
             } else {
                 // nothing to do
             }

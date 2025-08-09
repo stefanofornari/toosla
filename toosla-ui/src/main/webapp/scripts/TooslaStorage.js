@@ -40,20 +40,20 @@ const TOOSLA_API_STORAGE_WRITE = TOOSLA_API_STORAGE + "#write";
 
 export class TooslaStorage {
 
-    #credentials = null;
+    #passwd = null;
     account = null;
     validationKey = null;
     linkStatus = "unlinked";
     changeStatus = "clean";
     lastModified = null;
 
-    constructor(credentials) {
-        Utils.checkValue("credentials", credentials);
-        this.#credentials = credentials;
+    constructor(passwd) {
+        Utils.checkObject("passwd", passwd);
+        this.#passwd = passwd;
     }
 
-    get credentials() {
-        return this.#credentials;
+    async credentials() {
+        return await this.#passwd.loadSecret("123abc", "storage.credentials");
     }
 
     async login() {
@@ -64,7 +64,7 @@ export class TooslaStorage {
         //
         const data = new FormData();
         try {
-            data.append("credentials", this.#credentials)
+            data.append("credentials", await this.credentials());
             let response = await fetch(TOOSLA_API_STORAGE_LOGIN, {
                 method: "POST",
                 body: data

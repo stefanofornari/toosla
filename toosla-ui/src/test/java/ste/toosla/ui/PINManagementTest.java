@@ -31,8 +31,8 @@ public class PINManagementTest extends TooslaTestBase {
     /**
      * At page load:
      * - if no pin is found in sessionStorage and no encrypted
-     * pin is found in toosla.storage, show the create-pin dialog.
-     * - pressing Create stores the pin encrypted in toosla.storage
+     *   pin is found in localStorage.passwd.secret.pin, show the create-pin dialog.
+     * - pressing Create, stores the pin encrypted in localStorage.passwd.secret.pin
      *   and in clear in locaStorage
      */
     @Test
@@ -40,22 +40,22 @@ public class PINManagementTest extends TooslaTestBase {
         then(visible("#create-pin-dialog")).isTrue();
         exec("Metro.getPlugin('#create-pin-dialog input', 'keypad').val('1234')");
         click("#create-pin-dialog .btn-confirm");
-        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("1234");
-        then(exec("JSON.parse(toosla.storage.getItem('toosla.passwd.secret.pin')).secret")).isNotNull();
+        then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("1234");
+        then(exec("JSON.parse(localStorage.getItem('passwd.secret.pin')).secret")).isNotNull();
         then(visible("#create-pin-dialog")).isFalse();
 
         exec("$('#create-pin-dialog')[0].showModal();"); // show the dialog again
 
         exec("Metro.getPlugin('#create-pin-dialog input', 'keypad').val('67890')");
         click("#create-pin-dialog .btn-confirm");
-        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("67890");
-        then(exec("JSON.parse(toosla.storage.getItem('toosla.passwd.secret.pin')).secret")).isNotNull();
+        then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("67890");
+        then(exec("JSON.parse(localStorage.getItem('passwd.secret.pin')).secret")).isNotNull();
         then(visible("#create-pin-dialog")).isFalse();
     }
 
     /**
      * If no pin is provided make sure sessionStorage has an
-     * empty not null pin. The PIN is toosla.storage shall not
+     * empty not null pin. The PIN in localStorage.passwd.secret.pin shall not
      * change.
      */
     @Test
@@ -63,7 +63,7 @@ public class PINManagementTest extends TooslaTestBase {
         then(visible("#create-pin-dialog")).isTrue();
         exec("Metro.getPlugin('#create-pin-dialog input', 'keypad').val('1234')");
         click("#create-pin-dialog .btn-cancel");
-        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("");
+        then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("");
         then(visible("#create-pin-dialog")).isFalse();
 
         //
@@ -87,7 +87,7 @@ public class PINManagementTest extends TooslaTestBase {
         new WaitFor(250, () -> {
             return PIN.equals(exec("pin"));
         });
-        then(exec("sessionStorage.getItem('toosla.passwd.pin')")).isEqualTo("");
+        then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("");
         then(visible("#create-pin-dialog")).isFalse();
     }
 
@@ -97,7 +97,7 @@ public class PINManagementTest extends TooslaTestBase {
      */
     @Test
     public void no_pin_requested_when_in_session() {
-        exec("sessionStorage.setItem('toosla.passwd.pin', '123')");
+        exec("sessionStorage.setItem('passwd.pin', '123')");
         loadPage();
         then(visible("#create-pin-dialog")).isFalse();
         then(visible("#insert-pin-dialog")).isFalse();
@@ -105,7 +105,7 @@ public class PINManagementTest extends TooslaTestBase {
 
     /**
      * At page load:
-     * - if pin is not found in sessionStorage but found in toosla.storage,
+     * - if pin is not found in sessionStorage but found in localStorage,
      *   prompt to insert the pin
      */
     @Test

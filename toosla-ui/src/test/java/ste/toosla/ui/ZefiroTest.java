@@ -34,7 +34,7 @@ public class ZefiroTest extends TooslaTestBase {
     @Before
     public void before() throws Exception {
         super.before();
-        exec("sessionStorage.setItem('toosla.passwd.pin', '1234');");
+        exec("sessionStorage.setItem('passwd.pin', '1234');");
     }
 
     @Test
@@ -115,7 +115,8 @@ public class ZefiroTest extends TooslaTestBase {
         """); // set credentials
         click("#toosla-settings button.btn-done"); // click done button
         then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
-        then(exec("ctrl.passwd.labels()")).isEqualTo("[\"zefiro.user1\"]");
+        then(exec("ctrl.passwd.labels()")).isEqualTo("[\"zefiro.user1\",\"storage.credentials\"]");
+        then(async("ctrl.passwd.loadSecret('1234', 'storage.credentials')")).isEqualTo("[\"user1:password1\"]");
     }
 
     @Test
