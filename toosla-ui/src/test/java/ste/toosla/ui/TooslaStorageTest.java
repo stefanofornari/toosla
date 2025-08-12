@@ -69,7 +69,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username123");
-        then(exec("tooslaStorage.validationKey")).isEqualTo("key-username123:password1");
+        then(exec("tooslaStorage.apiKey")).isEqualTo("key-username123:password1");
         then(exec("tooslaStorage.linkStatus")).isEqualTo("linked");
         then((String)exec("__XTEST__.log")).contains("I TooslaStorage connected with account username123\n");
 
@@ -81,7 +81,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username456");
-        then(exec("tooslaStorage.validationKey")).isEqualTo("key-username456:password2");
+        then(exec("tooslaStorage.apiKey")).isEqualTo("key-username456:password2");
         then(exec("tooslaStorage.linkStatus")).isEqualTo("linked");
         then((String)exec("__XTEST__.log")).contains("I TooslaStorage connected with account username456\n");
 
@@ -96,7 +96,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username%&=?!");
-        then(exec("tooslaStorage.validationKey")).isEqualTo("key-username%&=?!:@=%56ò&?-\"\'");
+        then(exec("tooslaStorage.apiKey")).isEqualTo("key-username%&=?!:@=%56ò&?-\"\'");
         then(exec("tooslaStorage.linkStatus")).isEqualTo("linked");
 
         //
@@ -110,7 +110,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         """);
         async("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isNull();
-        then(exec("tooslaStorage.validationKey")).isNull();
+        then(exec("tooslaStorage.apiKey")).isNull();
         then(exec("tooslaStorage.linkStatus")).isEqualTo("unlinked");
         then((String)exec("__XTEST__.log")).contains("TooslaStorage unable to link the remote storage: the provided credentials are not authorized\n");
     }

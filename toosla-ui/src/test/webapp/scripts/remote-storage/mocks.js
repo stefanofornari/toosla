@@ -4,19 +4,19 @@ localStorage.setItem("/AnotherRootFolder/", null);
 const ROOT_PREFIX = "/OneMediaHub";
 
 export const mocks = [
-    MockServiceWorker.http.post('https://toosla.me/api/storage', async ({request}) => {
-        console.debug("Handling request ", request.url);
+    MockServiceWorker.http.post('https://toosla.me/api/storage/:command', async ({request, params}) => {
+        console.debug("Handling request ", request.url, JSON.stringify(params));
 
         const url = new URL(request.url);
 
-        if (url.hash === "#login") {
+        if (params.command === "login") {
             return await login(request);
-        } else if (url.hash === "#read") {
+        } else if (params.command === "read") {
             return await read(request);
-        } else if (url.hash === "#write") {
+        } else if (params.command === "write") {
             return await write(request);
         } else {
-            return new MockServiceWorker.HttpResponse(url.hash + " not handled", {
+            return new MockServiceWorker.HttpResponse(command + " not handled", {
                 status: 404,
                 statusText: "unhandled"
             });

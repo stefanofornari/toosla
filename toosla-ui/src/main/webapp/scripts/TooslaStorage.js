@@ -34,15 +34,15 @@ const CHANGE_STATUS_DIRTY = "dirty"; // unsaved changes, not in sync
 const TOOSLA_URL = "https://toosla.me";
 const TOOSLA_API = TOOSLA_URL + "/api";
 const TOOSLA_API_STORAGE = TOOSLA_API + "/storage";
-const TOOSLA_API_STORAGE_LOGIN = TOOSLA_API_STORAGE + "#login";
-const TOOSLA_API_STORAGE_READ = TOOSLA_API_STORAGE + "#read";
-const TOOSLA_API_STORAGE_WRITE = TOOSLA_API_STORAGE + "#write";
+const TOOSLA_API_STORAGE_LOGIN = TOOSLA_API_STORAGE + "/login";
+const TOOSLA_API_STORAGE_READ = TOOSLA_API_STORAGE + "/read";
+const TOOSLA_API_STORAGE_WRITE = TOOSLA_API_STORAGE + "/write";
 
 export class TooslaStorage {
 
     #passwd = null;
     account = null;
-    validationKey = null;
+    apiKey = null;
     linkStatus = "unlinked";
     changeStatus = "clean";
     lastModified = null;
@@ -72,7 +72,7 @@ export class TooslaStorage {
             if (response.ok) {
                 const body = await response.json();
                 this.account = body.account;
-                this.validationKey = body.validationkey;
+                this.apiKey = body.validationkey;
                 this.linkStatus = LINK_STATUS_LINKED;
                 console.info(`TooslaStorage connected with account ${this.account}`);
             } else {
@@ -84,7 +84,7 @@ export class TooslaStorage {
                 //
                 if (response.status === 401) {
                     this.account = null;
-                    this.validationKey = null;
+                    this.apiKey = null;
                     this.linkStatus = LINK_STATUS_UNLINKED;
                     console.info(`TooslaStorage unable to link the remote storage: the provided credentials are not authorized`);
                 }
@@ -112,7 +112,7 @@ export class TooslaStorage {
 
         try {
             const headers = {
-                "authorization": `token ${this.validationKey}`
+                "authorization": `token ${this.apiKey}`
             };
 
             if (this.lastModified) {
@@ -182,7 +182,7 @@ export class TooslaStorage {
         try {
             const headers = {
                 "Content-Type": "application/json",
-                "authorization":  `token ${this.validationKey}`
+                "authorization":  `token ${this.apiKey}`
             };
 
             if (this.lastModified) {
