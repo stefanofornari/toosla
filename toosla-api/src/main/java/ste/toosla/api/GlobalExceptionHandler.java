@@ -1,8 +1,7 @@
 package ste.toosla.api;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,11 +16,11 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger LOG = Logger.getLogger(GlobalExceptionHandler.class.getName());
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        logger.error("Unexpected exception occurred", ex);
+        LOG.log(Level.SEVERE, ex, () -> "Unexpected exception occurred");
         ErrorResponse error = new ErrorResponse(
             "An unexpected error occurred",
             ex.getMessage()
@@ -31,7 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(GeneralSecurityException.class)
     public ResponseEntity<ErrorResponse> handleSecurityException(GeneralSecurityException ex) {
-        logger.error("Security Exception occurred", ex);
+        LOG.log(Level.SEVERE, ex, () -> "Security Exception occurred");
         ErrorResponse error = new ErrorResponse(
             "Authentication failed",
             ex.getMessage()
@@ -41,7 +40,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        logger.error("Malformed JSON input", ex);
+        LOG.warning(() -> "Malformed JSON input");
         ErrorResponse error = new ErrorResponse(
             "Malformed JSON input",
             ex.getMessage()
@@ -51,7 +50,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        logger.error("Validation error", ex);
+        LOG.warning(() -> "Validation error");
         String errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getDefaultMessage()) // Get only the default message
                 .collect(Collectors.joining(", "));
