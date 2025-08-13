@@ -80,7 +80,7 @@ public class StorageController {
                                    "&password=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://zefiro.me/sapi/login"))
+                .uri(URI.create("https://zefiro.me/sapi/login?action=login"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("Origin", "https://zefiro.me")
                 .POST(HttpRequest.BodyPublishers.ofString(zefiroRequestBody))

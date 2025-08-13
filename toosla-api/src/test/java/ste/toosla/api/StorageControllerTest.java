@@ -62,7 +62,7 @@ public class StorageControllerTest {
         ((HttpClientStubber) httpClientBuilder).withStub(
             new ANDMatcher(
                     new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login"),
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
                     new HeaderMatcher("Origin", "https://zefiro.me")
                     }
             ),
@@ -98,7 +98,7 @@ public class StorageControllerTest {
     public void login_failed() throws Exception {
         // Given
         ((HttpClientStubber) httpClientBuilder).withStub(
-            "https://zefiro.me/sapi/login",
+            "https://zefiro.me/sapi/login?action=login",
             new StubHttpResponse<String>().statusCode(401).text("{\"success\": false}")
         );
 
@@ -129,7 +129,7 @@ public class StorageControllerTest {
         client.withStub(
             new ANDMatcher(
                 new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login"),
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
                     new HeaderMatcher("Origin", "https://zefiro.me"),
                     new BodyMatcher("login=&password=user1password1")
                 }
@@ -148,7 +148,7 @@ public class StorageControllerTest {
         client.withStub(
             new ANDMatcher(
                 new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login"),
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
                     new HeaderMatcher("Origin", "https://zefiro.me"),
                     new BodyMatcher("login=++++&password=pwd")
                 }
@@ -168,7 +168,7 @@ public class StorageControllerTest {
         ((HttpClientStubber) httpClientBuilder).withStub(
             new ANDMatcher(
                 new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login"),
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
                     new HeaderMatcher("Origin", "https://zefiro.me")
                 }
             ),
@@ -190,7 +190,7 @@ public class StorageControllerTest {
         ((HttpClientStubber) httpClientBuilder).withStub(
             new ANDMatcher(
                 new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login"),
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
                     new HeaderMatcher("Origin", "https://zefiro.me")
                 }
             ),
@@ -212,7 +212,7 @@ public class StorageControllerTest {
         ((HttpClientStubber) httpClientBuilder).withStub(
             new ANDMatcher(
                 new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login"),
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
                     new HeaderMatcher("Origin", "https://zefiro.me")
                 }
             ),
