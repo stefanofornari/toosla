@@ -56,6 +56,8 @@ export class Toosla {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             self.darkMode(event.matches);
         });
+
+        this.storage.login();
     };
 
     darkMode(dark) {

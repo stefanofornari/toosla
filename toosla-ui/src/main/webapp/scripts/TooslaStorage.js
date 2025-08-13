@@ -31,7 +31,8 @@ const CHANGE_STATUS_DIRTY = "dirty"; // unsaved changes, not in sync
 //
 // TODO: make the endpoint dynamic
 //
-const TOOSLA_URL = "https://toosla.me";
+//const TOOSLA_URL = "https://toosla.me";
+const TOOSLA_URL = "http://localhost:9090";
 const TOOSLA_API = TOOSLA_URL + "/api";
 const TOOSLA_API_STORAGE = TOOSLA_API + "/storage";
 const TOOSLA_API_STORAGE_LOGIN = TOOSLA_API_STORAGE + "/login";
@@ -53,7 +54,7 @@ export class TooslaStorage {
     }
 
     async credentials() {
-        return await this.#passwd.loadSecret("123abc", "storage.credentials");
+        return await this.#passwd.loadSecret(this.#passwd.pin, "storage.credentials");
     }
 
     async login() {
@@ -62,12 +63,15 @@ export class TooslaStorage {
         //
         // authenticate on the remote service
         //
-        const data = new FormData();
         try {
-            data.append("credentials", await this.credentials());
             let response = await fetch(TOOSLA_API_STORAGE_LOGIN, {
                 method: "POST",
-                body: data
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    credentials: await this.credentials()
+                })
             });
             if (response.ok) {
                 const body = await response.json();

@@ -4,7 +4,7 @@ localStorage.setItem("/AnotherRootFolder/", null);
 const ROOT_PREFIX = "/OneMediaHub";
 
 export const mocks = [
-    MockServiceWorker.http.post('https://toosla.me/api/storage/:command', async ({request, params}) => {
+    MockServiceWorker.http.post('*/api/storage/:command', async ({request, params}) => {
         console.debug("Handling request ", request.url, JSON.stringify(params));
 
         const url = new URL(request.url);
@@ -27,17 +27,17 @@ export const mocks = [
 async function login(request) {
     console.debug("handling login API");
     try {
-        const auth = await request.formData();
+        const auth = await request.json();
         const headers = request.headers;
-        console.log("Logging with ", auth.get("credentials"));
+        console.log("Logging in with ", auth.credentials);
 
         console.debug("request headers", ...headers);
-        console.debug("auth data", auth, auth.get("credentials"));
+        console.debug("auth data", auth, auth.credentials);
 
         //
         // 1. if auth data contains "fail-XXX" fail with status code XXX
         //
-        const credentials = auth.get("credentials");
+        const credentials = auth.credentials;
         const failurePos = credentials.indexOf("fail-");
         if (failurePos < 0) {
             return MockServiceWorker.HttpResponse.json({

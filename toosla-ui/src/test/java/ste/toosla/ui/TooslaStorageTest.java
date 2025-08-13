@@ -297,6 +297,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         exec("tooslaStorage.clear(false);");
 
         then(exec("localStorage.getItem('toosla.localKey1')")).isNull();
+        waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
         JSONAssertions.then(new JSONObject((String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json');")))
             .hasSize(1).contains("lastModified");
      }
