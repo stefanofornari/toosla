@@ -27,9 +27,9 @@ The scope of the toosla-api module is to create an API to serve a web applicatio
 The first service the API must provide is a remote storage interface so that the client can backup and share the local data. For example, the user can create a new todo in the todo widget on the car's browser. The new item will be stored locally and then synchronized to the remote storage. In this way the same user can leave the car and see the todo on the mobile phone.
 
 This API is fairly easy:
-1. /api/storage#write is the command to write a snapshot of the local storage in the remote storage
-2. /api/storage#read is the command to read the latest snapshot in the remote storage
-3. /api/storgae#login is the command to authenticate and authorize to the storage
+1. /api/storage/write is the command to write a snapshot of the local storage in the remote storage
+2. /api/storage/read is the command to read the latest snapshot in the remote storage
+3. /api/storgae/login is the command to authenticate and authorize to the storage
 
 Some additional important context:
 - as real backend we will use an object storage called Zefiro

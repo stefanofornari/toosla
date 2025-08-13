@@ -44,5 +44,12 @@
                 <include>${project.artifactId}-${project.version}.jar</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <outputDirectory>lib</outputDirectory>
+            <directory>target/classes</directory>
+            <includes>
+                <include>ste/toosla/util/logging/**/*.class</include>
+            </includes>
+        </fileSet>
     </fileSets>
 </assembly>

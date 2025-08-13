@@ -33,6 +33,7 @@ import ste.toosla.api.dto.ErrorResponse;
 import ste.toosla.api.dto.LoginRequest;
 
 import java.net.URI;
+import java.util.logging.Logger;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -43,6 +44,8 @@ import java.util.regex.Pattern;
 
 @RestController
 public class StorageController {
+
+    private static final Logger LOG = Logger.getLogger(StorageController.class.getName());
 
     //
     // Regex pattern to match the different formats
@@ -61,10 +64,12 @@ public class StorageController {
 
     @PostMapping("/api/storage/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) throws Exception {
-        // Extract credentials from the LoginRequest record
-        final String credentials = loginRequest.credentials();
-
-        final Matcher matcher = pattern.matcher(credentials);
+        LOG.info(() -> "Attempting login");
+        //
+        // Extract credentials from the LoginRequest record and process them
+        // to get account and password to use with to Zefiro
+        //
+        final Matcher matcher = pattern.matcher(loginRequest.credentials());
 
         matcher.matches();
 
@@ -79,6 +84,7 @@ public class StorageController {
         String zefiroRequestBody = "login=" + URLEncoder.encode(account, StandardCharsets.UTF_8) +
                                    "&password=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
 
+        LOG.info(() -> "Sending login request to Zefiro for account '" + account + "'");
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://zefiro.me/sapi/login?action=login"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -89,6 +95,7 @@ public class StorageController {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() >= 400) {
+            LOG.info(() -> "Zefiro returned an error status: " + response.statusCode());
             ErrorResponse error = new ErrorResponse("Login failed", "Received status " + response.statusCode() + " from Zefiro");
             return ResponseEntity.status(response.statusCode()).body(error);
         }
@@ -97,6 +104,7 @@ public class StorageController {
         JsonNode zefiroResponse = objectMapper.readTree(response.body());
         JsonNode validationKeyNode = zefiroResponse.at("/data/validationkey");
         if (validationKeyNode.isMissingNode() || validationKeyNode.asText().isEmpty()) {
+            LOG.severe(() -> "Missing or empty 'validationkey' in Zefiro response.");
             throw new IllegalStateException("Missing or empty 'validationkey' in Zefiro response");
         }
 
@@ -104,6 +112,7 @@ public class StorageController {
         ObjectNode apiResponse = objectMapper.createObjectNode();
         apiResponse.put("account", account);
         apiResponse.put("key", validationKeyNode.asText());
+        LOG.info(() -> "Login successful for account '" + account + "'");
 
         return ResponseEntity.ok().body(apiResponse);
     }

@@ -18,25 +18,21 @@
  * DAMAGES SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR DISTRIBUTING
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
-package ste.toosla.api.config;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
+package ste.toosla.util.logging;
 
-@Configuration
-public class WebConfig implements WebMvcConfigurer {
+import java.util.logging.FileHandler;
+import static org.assertj.core.api.BDDAssertions.then;
+import org.junit.jupiter.api.Test;
 
-    private final AccessLogInterceptor accessLogInterceptor;
+/**
+ *
+ */
+public class AccessLogHandlerTest {
 
-    @Autowired
-    public WebConfig(AccessLogInterceptor accessLogInterceptor) {
-        this.accessLogInterceptor = accessLogInterceptor;
+    @Test
+    public void an_AccessLogHandler_is_a_FileHandler() {
+        then(AccessLogHandler.class).isAssignableTo(FileHandler.class);
     }
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(accessLogInterceptor);
-    }
 }

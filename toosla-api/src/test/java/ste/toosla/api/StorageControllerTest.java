@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.http.HttpClient;
+import java.util.logging.Logger;
+import java.util.logging.Level;
+import static org.assertj.core.api.BDDAssertions.then;
 import org.junit.jupiter.api.BeforeEach;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -24,6 +27,9 @@ import ste.xtest.net.http.RequestMatcher;
 import ste.xtest.net.http.StubHttpClient.NetworkError;
 import ste.xtest.net.http.StubHttpClient.StubHttpResponse;
 import ste.xtest.net.http.URIMatcher;
+import org.junit.jupiter.api.AfterEach;
+import ste.xtest.logging.ListLogHandler;
+import ste.xtest.logging.LogAssertions;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,6 +43,8 @@ public class StorageControllerTest {
 
     @Autowired
     private HttpClient.Builder httpClientBuilder;
+
+    private ListLogHandler logHandler;
 
     @TestConfiguration
     static class TestConfig {
@@ -54,6 +62,17 @@ public class StorageControllerTest {
     @BeforeEach
     public void before() throws Exception {
         ((HttpClientStubber)httpClientBuilder).stubs().clear();
+        Logger logger = Logger.getLogger(StorageController.class.getName());
+        logger.setLevel(Level.ALL);
+        logHandler = new ListLogHandler();
+        logger.addHandler(logHandler);
+        logHandler.getRecords().clear(); // Clear any logs from previous tests or setup
+    }
+
+    @AfterEach
+    public void after() {
+        Logger storageControllerLogger = Logger.getLogger(StorageController.class.getName());
+        storageControllerLogger.removeHandler(logHandler);
     }
 
     @Test
@@ -226,5 +245,126 @@ public class StorageControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+    }
+
+    @Test
+    public void log_successful_login() throws Exception {
+        // Given
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            new ANDMatcher(
+                    new RequestMatcher[] {
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                    new HeaderMatcher("Origin", "https://zefiro.me")
+                    }
+            ),
+            new StubHttpResponse<String>().text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
+        );
+
+        // When
+        mockMvc.perform(post("/api/storage/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credentials\":\"user1:password1\"}"));
+
+        // Then
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting login")
+                .containsINFO("Sending login request to Zefiro for account 'user1'")
+                .containsINFO("Login successful for account 'user1'");
+    }
+
+    @Test
+    public void log_failed_login() throws Exception {
+        // Given
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            "https://zefiro.me/sapi/login?action=login",
+            new StubHttpResponse<String>().statusCode(401).text("{\"success\": false}")
+        );
+
+        // When
+        mockMvc.perform(post("/api/storage/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credentials\":\"wrong_credentials\"}"));
+
+        // Then
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting login")
+                .containsINFO("Sending login request to Zefiro for account 'wrong_credentials'")
+                .containsINFO("Zefiro returned an error status: 401");
+    }
+
+    @Test
+    public void log_zefiro_missing_fields() throws Exception {
+        // Given
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            new ANDMatcher(
+                new RequestMatcher[] {
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                    new HeaderMatcher("Origin", "https://zefiro.me")
+                }
+            ),
+            new StubHttpResponse<String>().text("{\"data\":{\"roles\":[{\"name\":\"sync_user\",\"description\":\"\"},{\"name\":\"zefiropro\",\"description\":\"\"}],\"jsessionid\":\"60B4626852904AFCF9AA25D858730F8E.1i164\"},\"responsetime\":1754811602118}")
+        );
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credentials\":\"user1:password1\"}"));
+
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting login")
+                .containsINFO("Sending login request to Zefiro for account 'user1'")
+                .containsSEVERE("Missing or empty 'validationkey' in Zefiro response.");
+    }
+
+    @Test
+    public void log_login_connection_error() throws Exception {
+        // Given
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            new ANDMatcher(
+                new RequestMatcher[] {
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                    new HeaderMatcher("Origin", "https://zefiro.me")
+                }
+            ),
+            new NetworkError()
+        );
+
+        // When
+        mockMvc.perform(post("/api/storage/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credentials\":\"user1:password1\"}"));
+
+        // Then
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting login")
+                .containsINFO("Sending login request to Zefiro for account 'user1'");
+    }
+
+    @Test
+    public void no_logs_when_level_off() throws Exception {
+        // Given
+        Logger storageControllerLogger = Logger.getLogger(StorageController.class.getName());
+        storageControllerLogger.setLevel(Level.OFF); // Set log level to OFF
+
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            new ANDMatcher(
+                    new RequestMatcher[] {
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                    new HeaderMatcher("Origin", "https://zefiro.me")
+                    }
+            ),
+            new StubHttpResponse<String>().text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
+        );
+
+        // When
+        mockMvc.perform(post("/api/storage/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credentials\":\"user1:password1\"}"));
+
+        // Then
+        then(logHandler.getRecords()).isEmpty(); // Assert that no log records were captured
+
+        // Reset log level to default for other tests
+        storageControllerLogger.setLevel(Level.ALL);
     }
 }
