@@ -20,32 +20,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        LOG.log(Level.SEVERE, ex, () -> "Unexpected exception occurred");
-        ErrorResponse error = new ErrorResponse(
-            "An unexpected error occurred",
-            ex.getMessage()
-        );
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        return buildErrorResponse(ex, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR, Level.SEVERE);
     }
 
     @ExceptionHandler(GeneralSecurityException.class)
     public ResponseEntity<ErrorResponse> handleSecurityException(GeneralSecurityException ex) {
-        LOG.log(Level.SEVERE, ex, () -> "Security Exception occurred");
-        ErrorResponse error = new ErrorResponse(
-            "Authentication failed",
-            ex.getMessage()
-        );
-        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+        return buildErrorResponse(ex, "Authentication failed", HttpStatus.UNAUTHORIZED, Level.SEVERE);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        LOG.warning(() -> "Malformed JSON input");
-        ErrorResponse error = new ErrorResponse(
-            "Malformed JSON input",
-            ex.getMessage()
-        );
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        return buildErrorResponse(ex, "Malformed JSON input", HttpStatus.BAD_REQUEST, Level.WARNING);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -59,5 +44,14 @@ public class GlobalExceptionHandler {
             "Validation failed for input fields" // Provide a more general detail
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    private ResponseEntity<ErrorResponse> buildErrorResponse(Exception ex, String message, HttpStatus status, Level level) {
+        LOG.log(level, ex, () -> message);
+        ErrorResponse error = new ErrorResponse(
+            message,
+            ex.getMessage()
+        );
+        return new ResponseEntity<>(error, status);
     }
 }
