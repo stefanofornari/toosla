@@ -53,6 +53,7 @@ public class StorageControllerTest {
         // The HttpClient.Builder is also defined in ApplicationConfig.java, and this test
         // needs to provide its own mock implementation. @Primary tells Spring to prefer
         // this bean when there are multiple beans of the same type.
+
         @Primary
         public HttpClient.Builder httpClientBuilder() {
             return new HttpClientStubber();
@@ -127,7 +128,7 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"wrong_credentials\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Login failed"));
+                .andExpect(jsonPath("$.message").value("Zefiro authentication failed"));
     }
 
     @Test
@@ -200,7 +201,7 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:password1\"}"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(jsonPath("$.message").value("Error processing the Zefiro request"));
     }
 
     @Test
@@ -222,7 +223,7 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:password1\"}"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(jsonPath("$.message").value("Error processing the Zefiro request"));
     }
 
     @Test
@@ -244,7 +245,7 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:password1\"}"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(jsonPath("$.message").value("Error processing the Zefiro request"));
     }
 
     @Test
@@ -289,7 +290,7 @@ public class StorageControllerTest {
         LogAssertions.then(logHandler.getRecords())
                 .containsINFO("Attempting login")
                 .containsINFO("Sending login request to Zefiro for account 'wrong_credentials'")
-                .containsINFO("Zefiro returned an error status: 401");
+                .containsINFO("Zefiro authentication failed - Not authorized");
     }
 
     @Test
@@ -313,7 +314,7 @@ public class StorageControllerTest {
         LogAssertions.then(logHandler.getRecords())
                 .containsINFO("Attempting login")
                 .containsINFO("Sending login request to Zefiro for account 'user1'")
-                .containsSEVERE("Missing or empty 'validationkey' in Zefiro response.");
+                .containsSEVERE("Error processing the Zefiro request - Missing or empty 'validationkey' in Zefiro response");
     }
 
     @Test

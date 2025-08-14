@@ -12,6 +12,48 @@ The following API endpoints are currently implemented:
 
 *   **`GET /health`**: Provides a health check for the API, returning the service status and other relevant information.
 
+## Zefiro API
+
+### Get root folder
+
+`
+  GET https://zefiro.me/sapi/media/folder/root?action=get&validationkey=543...d20
+  > {"data":{"folders":[{"name":"OneMediaHub","id":47487,"status":"N","magic":true,"offline":false,"date":1391491519230},{"name":"Download","id":105269,"status":"N","magic":false,"offline":false,"devicename":"fol-9Tbabm+r+K5smt5KB5mtiA==","date":1404913723999},{"name":"Download","id":139809,"status":"N","magic":false,"offline":false,"devicename":"fol-9Tbabm+r+K5smt5KB5mtiA==","date":1406733538488}]},"responsetime":1751126649118}
+`
+
+### Get OneMediaOne subfolders
+
+`
+  GET https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=543...d20
+  > {"data":{"folders":[{"name":"Mobile and Web Uploads","id":47488,"status":"N","magic":false,"offline":true,"parentid":47487,"date":1391491519690},...]},"responsetime":1751126649266}
+`
+
+### Create Toosla folder
+
+`
+  POST https://zefiro.me/sapi/media/folder?action=save&validationkey=543...d20
+  > {"data":{"magic":false,"offline":false,"name":"Toosla","parentid":47487}}
+  < {"data":{"folder":{"name":"Toosla","id":867202,"lastupdate":1751127150132},"success":"Folder saved successfully"},"success":"Folder saved successfully","id":867202,"lastupdate":1751127150132,"responsetime":1751127150176}
+`
+
+### Upload a file
+
+`
+  POST https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=543...d20
+  > multipart
+`
+
+### Download a file
+
+`
+ POST https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=543f36292928584c69253c5e5d637d20
+ > {"data":{"ids":[680005393],"fields":["name","creationdate","postingdate","size","thumbnails","viewurl","videometadata","exif","url","shared","exported","origin","folderid","playbackurl","transcodingstatus","etag"]}}
+ < {"data":{"media":[{"id":"680005393","date":1751127510918,"mediatype":"file","status":"U","userid":"123","url":"https://zefiro.me/sapi/download/file?action=get&k=RlV...164","creationdate":1749970147000,"size":1722,"name":"identity-prod.tgz","etag":"58IEhYENeW04HhTImidzBw==","folder":867202,"shared":false,"origin":{"name":"omh"}}]},"responsetime":1751127803982}
+
+ GET https://zefiro.me/sapi/download/file?action=get&k=RlV...eWU&node=1i164&filename=identity-prod.tgz
+ <   ... binary data ...
+`
+
 ## Planned Endpoints
 
 The following endpoints are planned for future implementation:

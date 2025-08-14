@@ -1,11 +1,3 @@
-# TDD Workflow
-
-1. we write production code only if we have a breaking test
-2. we start always from the test, not the production code
-3. we first review the test and if ok, we can create production code
-4. we always write the minimal code that satisfies a test
-5. only when all tests are green we can refactor
-
 # Technologies
 
 - maven
@@ -16,9 +8,6 @@
 - Spring Boot
 
 # Preferences
-
-- Do not use syntax highlighting for code changes.
-- When working on a single feature/method, run only the corresponding test method using `mvn test -Dtest=YourTestClass#yourTestMethod`.
 
 # Project Scope and API Description
 

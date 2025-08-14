@@ -22,25 +22,24 @@
 package ste.toosla.api;
 
 import jakarta.validation.Valid;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.net.http.HttpClient;
+import java.util.logging.Level;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import ste.toosla.api.dto.ErrorResponse;
 import ste.toosla.api.dto.LoginRequest;
 
-import java.net.URI;
 import java.util.logging.Logger;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import ste.toosla.api.dto.ErrorResponse;
+import ste.toosla.zefiro.ZefiroClient;
+import ste.toosla.zefiro.ZefiroException;
+import ste.toosla.zefiro.ZefiroLoginException;
+import ste.toosla.zefiro.ZefiroLoginResponse;
 
 @RestController
 public class StorageController {
@@ -54,11 +53,11 @@ public class StorageController {
     //
     private final Pattern pattern = Pattern.compile("^([^:]*?)(?::(.*))?$");
 
-    private final HttpClient.Builder httpClientBuilder;
+    private final ZefiroClient zefiroClient;
     private final ObjectMapper objectMapper;
 
     public StorageController(HttpClient.Builder httpClientBuilder, ObjectMapper objectMapper) {
-        this.httpClientBuilder = httpClientBuilder;
+        this.zefiroClient = new ZefiroClient(httpClientBuilder);
         this.objectMapper = objectMapper;
     }
 
@@ -78,42 +77,34 @@ public class StorageController {
         // Group 2 contains part2 (or null if no colon or ends with :)
         final String secret = matcher.group(2) != null ? matcher.group(2) : "";
 
-        HttpClient client = httpClientBuilder.build();
-
-        // Construct URL-form-encoded body for Zefiro
-        String zefiroRequestBody = "login=" + URLEncoder.encode(account, StandardCharsets.UTF_8) +
-                                   "&password=" + URLEncoder.encode(secret, StandardCharsets.UTF_8);
-
         LOG.info(() -> "Sending login request to Zefiro for account '" + account + "'");
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://zefiro.me/sapi/login?action=login"))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("Origin", "https://zefiro.me")
-                .POST(HttpRequest.BodyPublishers.ofString(zefiroRequestBody))
-                .build();
+        ResponseEntity[] error = new ResponseEntity[1];
+        Level errorLevel = Level.OFF;
+        try {
+            ZefiroLoginResponse zefiroResponse = zefiroClient.login(account, secret);
+            ObjectNode apiResponse = objectMapper.createObjectNode();
+            apiResponse.put("account", zefiroResponse.account());
+            apiResponse.put("key", zefiroResponse.key());
+            LOG.info(() -> "Login successful for account '" + account + "'");
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() >= 400) {
-            LOG.info(() -> "Zefiro returned an error status: " + response.statusCode());
-            ErrorResponse error = new ErrorResponse("Login failed", "Received status " + response.statusCode() + " from Zefiro");
-            return ResponseEntity.status(response.statusCode()).body(error);
+            return ResponseEntity.ok().body(apiResponse);
+        } catch (ZefiroLoginException x) {
+            error[0] = ResponseEntity.status(401).body(
+                new ErrorResponse("Zefiro authentication failed", x.getMessage())
+            );
+            errorLevel = Level.INFO;
+        } catch (ZefiroException x) {
+            error[0] = ResponseEntity.internalServerError().body(
+                new ErrorResponse("Error processing the Zefiro request", x.getMessage())
+            );
+            errorLevel = Level.SEVERE;
         }
 
-        // Parse Zefiro's response
-        JsonNode zefiroResponse = objectMapper.readTree(response.body());
-        JsonNode validationKeyNode = zefiroResponse.at("/data/validationkey");
-        if (validationKeyNode.isMissingNode() || validationKeyNode.asText().isEmpty()) {
-            LOG.severe(() -> "Missing or empty 'validationkey' in Zefiro response.");
-            throw new IllegalStateException("Missing or empty 'validationkey' in Zefiro response");
-        }
+        LOG.log(errorLevel, () -> {
+            final ErrorResponse R = (ErrorResponse)error[0].getBody();
+            return R.getMessage() + " - " + R.getDetails();
+        });
 
-        // Construct our API's response
-        ObjectNode apiResponse = objectMapper.createObjectNode();
-        apiResponse.put("account", account);
-        apiResponse.put("key", validationKeyNode.asText());
-        LOG.info(() -> "Login successful for account '" + account + "'");
-
-        return ResponseEntity.ok().body(apiResponse);
+        return error[0];
     }
 }
