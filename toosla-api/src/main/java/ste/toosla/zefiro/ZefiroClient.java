@@ -11,20 +11,40 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * A client for the Zefiro service.
+ */
 public class ZefiroClient {
 
     private final HttpClient.Builder httpClientBuilder;
     private final ObjectMapper jsonMapper;
 
+    /**
+     * Creates a new instance of the ZefiroClient.
+     */
     public ZefiroClient() {
         this(HttpClient.newBuilder());
     }
 
+    /**
+     * Creates a new instance of the ZefiroClient.
+     *
+     * @param httpClientBuilder the http client builder
+     */
     public ZefiroClient(HttpClient.Builder httpClientBuilder) {
         this.httpClientBuilder = httpClientBuilder;
         this.jsonMapper = new ObjectMapper();
     }
 
+    /**
+     * Logs in to the Zefiro service.
+     *
+     * @param account the account name
+     * @param secret the account secret
+     * @return the login response
+     * @throws ZefiroException if an error occurs
+     * @throws ZefiroLoginException if the login fails
+     */
     public ZefiroLoginResponse login(String account, String secret) throws ZefiroException, ZefiroLoginException {
         try {
             HttpClient client = httpClientBuilder.build();
