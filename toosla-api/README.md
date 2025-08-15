@@ -27,7 +27,13 @@ The following API endpoints are currently implemented:
   GET https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=543...d20
   > {"data":{"folders":[{"name":"Mobile and Web Uploads","id":47488,"status":"N","magic":false,"offline":true,"parentid":47487,"date":1391491519690},...]},"responsetime":1751126649266}
 `
+### Get the files in a folder
 
+`
+  POST https://zefiro.me/sapi/media?action=get&folderid=867202&limit=200&validationkey=543...d20
+  > {"data":{"fields":["name","modificationdate","size","thumbnails","videometadata","audiometadata","favorite","shared","etag"]}}
+  < {"data":{"media":[{"id":"680005393","date":1751127510918,"mediatype":"file","status":"U","userid":"ste","modificationdate":1749970147000,"size":1722,"name":"identity-prod.tgz","etag":"58IEhYENeW04HhTImidzBw==","favorite":false,"shared":false}],"more":false},"responsetime":1755185053379}
+`
 ### Create Toosla folder
 
 `
@@ -46,7 +52,7 @@ The following API endpoints are currently implemented:
 ### Download a file
 
 `
- POST https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=543f36292928584c69253c5e5d637d20
+ POST https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=543...d20
  > {"data":{"ids":[680005393],"fields":["name","creationdate","postingdate","size","thumbnails","viewurl","videometadata","exif","url","shared","exported","origin","folderid","playbackurl","transcodingstatus","etag"]}}
  < {"data":{"media":[{"id":"680005393","date":1751127510918,"mediatype":"file","status":"U","userid":"123","url":"https://zefiro.me/sapi/download/file?action=get&k=RlV...164","creationdate":1749970147000,"size":1722,"name":"identity-prod.tgz","etag":"58IEhYENeW04HhTImidzBw==","folder":867202,"shared":false,"origin":{"name":"omh"}}]},"responsetime":1751127803982}
 

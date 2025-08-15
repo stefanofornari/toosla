@@ -7,6 +7,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ste.xtest.net.http.HttpClientStubber;
 import ste.xtest.net.http.StubHttpClient.StubHttpResponse;
+import ste.xtest.net.http.ANDMatcher;
+import ste.xtest.net.http.URIMatcher;
+import ste.xtest.net.http.BodyMatcher;
+import ste.xtest.net.http.RequestMatcher;
 
 public class ZefiroClientTest {
 
@@ -72,6 +76,111 @@ public class ZefiroClientTest {
         // When & Then
         thenThrownBy(() -> zefiro.login("test_user", "test_password"))
                 .isInstanceOf(ZefiroLoginException.class);
+    }
+
+    @Test
+    public void download_file_from_subfolder() throws Exception {
+        // Given
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            //
+            // list root folder
+            //
+            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"OneMediaHub\",\"id\":47487,\"status\":\"N\",\"magic\":true,\"offline\":false,\"date\":1391491519230}]}}")
+        ).withStub(
+            //
+            // list /OneMediaHub (folders)
+            //
+            "https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"Toosla\",\"id\":12345,\"status\":\"N\",\"magic\":false,\"offline\":false,\"date\":123}]}}")
+        ).withStub(
+            //
+            // list /OneMediaHub/Toolsa/ (folders)
+            //
+            "https://zefiro.me/sapi/media/folder?action=list&parentid=12345&limit=200&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[]}}")
+        ).withStub(
+            //
+            // list /OneMesiaHub/Toosla/ (files)
+            //
+            "https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=test_key",
+            new StubHttpResponse<String>().text("""
+                {
+                   "data":{
+                        "media":[
+                            {
+                                "id":"12345",
+                                "date":1751127510918,
+                                "mediatype":"file",
+                                "status":"U",
+                                "userid":"ste",
+                                "modificationdate":1749970147000,
+                                "size":1722,
+                                "name":"toosla.json",
+                                "etag":"58IEhYENeW04HhTImidzBw==",
+                                "favorite":false,
+                                "shared":false
+                            },
+                            {
+                                "id":"67890",
+                                "date":1751127510918,
+                                "mediatype":"file",
+                                "status":"U",
+                                "userid":"ste",
+                                "modificationdate":1749970147000,
+                                "size":1000,
+                                "name":"another_toosla.json",
+                                "etag":"58IEhYENeW04HhTImidzBw==",
+                                "favorite":false,
+                                "shared":false
+                            }
+                        ],
+                        "more":false
+                    },
+                    "responsetime":1755185053379
+                }
+            """)
+        ).withStub(
+            //
+            // get /OneMesiaHub/Toosla/toosla.json file metadata
+            //
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=test_key"),
+                new BodyMatcher("{\"data\":{\"ids\":[12345],\"fields\":[\"url\"]}}")
+            }),
+            new StubHttpResponse<String>().text("{\"data\":{\"media\":[{\"id\":\"12345\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_12345\"}]}}")
+        ).withStub(
+            //
+            // get /OneMesiaHub/Toosla/another_toosla.json file metadata
+            //
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=test_key"),
+                new BodyMatcher("{\"data\":{\"ids\":[67890],\"fields\":[\"url\"]}}")
+            }),
+            new StubHttpResponse<String>().text("{\"data\":{\"media\":[{\"id\":\"67890\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_67890\"}]}}")
+        ).withStub(
+            //
+            // download content of toosla.json
+            //
+            "https://zefiro.me/sapi/download/file?action=get&k=key_for_12345",
+            new StubHttpResponse<String>().text("{\"content\":\"this is toosla\"}")
+        ).withStub(
+            //
+            // download content of another_toosla.json
+            //
+            "https://zefiro.me/sapi/download/file?action=get&k=key_for_67890",
+            new StubHttpResponse<String>().text("{\"content\":\"this is another toosla\"}")
+        );
+
+        then(
+            zefiro.download("/OneMediaHub/Toosla/toosla.json", "test_key")
+        ).isEqualTo("{\"content\":\"this is toosla\"}");
+
+        then(
+            zefiro.download("/OneMediaHub/Toosla/another_toosla.json", "test_key")
+        ).isEqualTo("{\"content\":\"this is another toosla\"}");
+
+
     }
 
     @Test
