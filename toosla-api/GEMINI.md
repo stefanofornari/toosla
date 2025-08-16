@@ -41,3 +41,10 @@ Some additional important context:
 - An error is returned if the path does not exist
 - Each call to zefiro API shall provide the validationKey as returned from the login method
 - We follow the tdd workflow
+
+# ZefiroClient.download with If-Modified-Since
+
+- we shall have a download() overridden method that accepts a Date that represent the "modified since" timestamp
+- we gather the creation date of the item on zefiro side from /data/creationdate when requesting the metadata of the file (ie. when we ask for the url); this timestamp is a unix timestap and we can take it as last modification timestamp on zefiro
+- if the item's creation timestamp is more recent than the provided "modified since" timestamp, we download and return the content
+- if the item's creation timestamp is not more recent, we return a 304 up to date status

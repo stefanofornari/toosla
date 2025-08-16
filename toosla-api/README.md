@@ -49,7 +49,25 @@ The following API endpoints are currently implemented:
 `
   POST https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=543...d20
   > multipart
+  ------geckoformboundary8267430e1b10bd40b9bf906074cf7b95
+  Content-Disposition: form-data; name="data"
+
+  {"data":{"name":"test.json","size":21,"modificationdate":"20250815T174426Z","contenttype":"application/json","folderid":867202}}
+  ------geckoformboundary8267430e1b10bd40b9bf906074cf7b95
+  Content-Disposition: form-data; name="file"; filename="test.json"
+  Content-Type: application/json
+
+  {
+    "text":"hello"
+  }
+  ------geckoformboundary8267430e1b10bd40b9bf906074cf7b95--
+  > {"success":"Media uploaded successfully","id":"680245514","status":"V","etag":"J7XxRng02rtVeS3X9Wj58Q==","responsetime":1755272687861,"type":"file"}
 `
+
+### Delete a file
+  POST https://zefiro.me/sapi/media/file?action=delete&softdelete=true&validationkey=543...d20
+  > {"data":{"files":[680245515]}}
+  < {"success":"Files soft deleted successfully","responsetime":1755273215646}
 
 ### Download a file
 

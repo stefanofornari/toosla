@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ste.toosla.api.dto.ErrorResponse;
 
+import ste.toosla.zefiro.ZefiroFileNotFoundException;
+
 import java.security.GeneralSecurityException;
 import java.util.stream.Collectors;
 

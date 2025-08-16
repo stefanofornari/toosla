@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ste.toosla.api.dto.LoginRequest;
+import ste.toosla.api.dto.ReadRequest;
 
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -40,6 +41,13 @@ import ste.toosla.zefiro.ZefiroClient;
 import ste.toosla.zefiro.ZefiroException;
 import ste.toosla.zefiro.ZefiroLoginException;
 import ste.toosla.zefiro.ZefiroLoginResponse;
+import ste.toosla.zefiro.ZefiroFileNotFoundException;
+import java.util.Optional;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @RestController
 public class StorageController {
@@ -106,5 +114,36 @@ public class StorageController {
         });
 
         return error[0];
+    }
+
+    @PostMapping("/api/storage/read")
+    public ResponseEntity<?> read(
+            @Valid @RequestBody ReadRequest readRequest,
+            @RequestHeader("X-Validation-Key") String validationKey,
+            @RequestHeader(name = "If-Modified-Since", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Date ifModifiedSince) {
+        LOG.info(() -> "Attempting to read file: " + readRequest.path() + " if modified since " + ifModifiedSince);
+        try {
+            Optional<String> content = zefiroClient.download(readRequest.path(), validationKey, ifModifiedSince);
+            if (content.isPresent()) {
+                LOG.info(() -> "File read successfully: " + readRequest.path());
+                return ResponseEntity
+                        .ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(content.get());
+            } else {
+                LOG.info(() -> "File not modified: " + readRequest.path());
+                return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
+            }
+        } catch (ZefiroFileNotFoundException x) {
+            LOG.warning(() -> "File not found: " + readRequest.path());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ErrorResponse("File not found", x.getMessage()));
+        } catch (ZefiroException x) {
+            LOG.log(Level.SEVERE, x, () -> "Error reading file: " + readRequest.path());
+            return ResponseEntity.internalServerError().body(
+                    new ErrorResponse("Error reading file", x.getMessage()));
+        }
     }
 }

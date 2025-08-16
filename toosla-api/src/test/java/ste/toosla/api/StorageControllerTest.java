@@ -11,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.http.HttpClient;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static org.assertj.core.api.BDDAssertions.then;
@@ -28,6 +30,8 @@ import ste.xtest.net.http.StubHttpClient.NetworkError;
 import ste.xtest.net.http.StubHttpClient.StubHttpResponse;
 import ste.xtest.net.http.URIMatcher;
 import org.junit.jupiter.api.AfterEach;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import ste.toosla.zefiro.ZefiroClientTest;
 import ste.xtest.logging.ListLogHandler;
 import ste.xtest.logging.LogAssertions;
 
@@ -367,5 +371,78 @@ public class StorageControllerTest {
 
         // Reset log level to default for other tests
         storageControllerLogger.setLevel(Level.ALL);
+    }
+
+    @Test
+    public void read_file_not_found() throws Exception {
+        // Given
+        ((HttpClientStubber) httpClientBuilder).withStub(
+            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"OneMediaHub\",\"id\":47487}]}}")
+        ).withStub(
+            "https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"Toosla\",\"id\":12345}]}}")
+        ).withStub(
+            "https://zefiro.me/sapi/media/folder?action=list&parentid=12345&limit=200&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[]}}")
+        ).withStub(
+            "https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=test_key",
+            new StubHttpResponse<String>().text("{\"data\":{\"media\":[]}}")
+        );
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/read")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Validation-Key", "test_key")
+                .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("File not found"))
+                .andExpect(jsonPath("$.details").value("File not found: /OneMediaHub/Toosla/not_found.json"));
+    }
+
+    @Test
+    public void read_without_if_modified_since() throws Exception {
+        ZefiroClientTest.setUpDownloadStubs(httpClientBuilder, 0);
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/read")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Validation-Key", "test_key")
+                .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("File not found"))
+                .andExpect(jsonPath("$.details").value("File not found: /OneMediaHub/Toosla/not_found.json"));
+    }
+
+    @Test
+    public void read_when_if_modified_since_is_in_the_past() throws Exception {
+        final Date NOW = new Date();
+        ZefiroClientTest.setUpDownloadStubs(httpClientBuilder, NOW.getTime()-(60*60*1000));
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/read")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Validation-Key", "test_key")
+                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(NOW.toInstant()))
+                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .andExpect(status().isNotModified());
+    }
+
+    @Test
+    public void read_when_if_modified_since_is_in_the_future() throws Exception {
+        final Date NOW = new Date();
+        ZefiroClientTest.setUpDownloadStubs(httpClientBuilder, NOW.getTime()+(60*60*1000));
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/read")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Validation-Key", "test_key")
+                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(NOW.toInstant()))
+                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(content().string("{\"content\":\"this is toosla\"}"));
     }
 }
