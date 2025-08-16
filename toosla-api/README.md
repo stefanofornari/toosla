@@ -12,6 +12,8 @@ The following API endpoints are currently implemented:
 
 *   **`GET /health`**: Provides a health check for the API, returning the service status and other relevant information.
 
+*   **`POST /api/storage/read`**: Reads the latest snapshot of data from the remote storage. This endpoint supports conditional retrieval using the `If-Modified-Since` header. If the data has not been modified since the provided timestamp, a `304 Not Modified` status is returned. Otherwise, the latest data is returned.
+
 ## Zefiro API
 
 ### Get root folder
@@ -65,4 +67,3 @@ The following API endpoints are currently implemented:
 The following endpoints are planned for future implementation:
 
 *   **`POST /api/storage/write`**: Used to write a snapshot of local storage data to the remote storage.
-*   **`GET /api/storage/read`**: Used to read the latest snapshot of data from the remote storage.
