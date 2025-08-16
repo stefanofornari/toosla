@@ -103,7 +103,7 @@ export class TooslaStorage {
     }
 
     /**
-     * Sync logi is as follows
+     * Sync logic is as follows
      *
      * 1. retrieve server version only if more recent
      * 2. if a more recent version is available, the entire local storage is
