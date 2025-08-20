@@ -12,7 +12,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.http.HttpClient;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static org.assertj.core.api.BDDAssertions.then;
@@ -21,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import ste.xtest.net.http.ANDMatcher;
 import ste.xtest.net.http.BodyMatcher;
 import ste.xtest.net.http.HeaderMatcher;
@@ -30,8 +30,13 @@ import ste.xtest.net.http.StubHttpClient.NetworkError;
 import ste.xtest.net.http.StubHttpClient.StubHttpResponse;
 import ste.xtest.net.http.URIMatcher;
 import org.junit.jupiter.api.AfterEach;
+import org.springframework.mock.web.MockHttpSession;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import ste.toosla.zefiro.ZefiroClientTest;
+import static ste.toosla.zefiro.ZefiroClientTest.FIXED_EARLIER_DATE;
+import static ste.toosla.zefiro.ZefiroClientTest.FIXED_LATER_DATE;
+import static ste.toosla.zefiro.ZefiroClientTest.FIXED_MODIFICATION_DATE;
+import static ste.toosla.zefiro.ZefiroClientTest.VALIDATION_KEY;
+import static ste.toosla.zefiro.ZefiroClientTest.setUpFileStubs;
 import ste.xtest.logging.ListLogHandler;
 import ste.xtest.logging.LogAssertions;
 
@@ -40,13 +45,14 @@ import ste.xtest.logging.LogAssertions;
 public class StorageControllerTest {
 
     public static final String SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE =
-       "{\"data\":{\"roles\":[{\"name\":\"sync_user\",\"description\":\"\"},{\"name\":\"zefiropro\",\"description\":\"\"}],\"jsessionid\":\"60B4626852904AFCF9AA25D858730F8E.1i164\",\"validationkey\":\"2e3f4b6c3e2566274023542970455031\"},\"responsetime\":1754811602118}";
+       "{\"data\":{\"roles\":[{\"name\":\"sync_user\",\"description\":\"\"},{\"name\":\"zefiropro\",\"description\":\"\"}],\"jsessionid\":\"60B4626852904AFCF9AA25D858730F8E.1i164\",\"validationkey\":\"test_key\"},\"responsetime\":1754811602118}";
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private HttpClient.Builder httpClientBuilder;
+    //private HttpClient.Builder httpClientBuilder;
+    private HttpClientStubber httpClientBuilder;
 
     private ListLogHandler logHandler;
 
@@ -66,7 +72,7 @@ public class StorageControllerTest {
 
     @BeforeEach
     public void before() throws Exception {
-        ((HttpClientStubber)httpClientBuilder).stubs().clear();
+        httpClientBuilder.stubs().clear();
         Logger logger = Logger.getLogger(StorageController.class.getName());
         logger.setLevel(Level.ALL);
         logHandler = new ListLogHandler();
@@ -83,12 +89,10 @@ public class StorageControllerTest {
     @Test
     public void login_successful() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                    new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                    }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new StubHttpResponse<String>().text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
         );
@@ -99,7 +103,7 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:password1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("user1"))
-                .andExpect(jsonPath("$.key").value("2e3f4b6c3e2566274023542970455031"));
+                .andExpect(jsonPath("$.key").value(VALIDATION_KEY));
 
         // Test with user1: (empty password)
         mockMvc.perform(post("/api/storage/login")
@@ -107,7 +111,7 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("user1"))
-                .andExpect(jsonPath("$.key").value("2e3f4b6c3e2566274023542970455031"));
+                .andExpect(jsonPath("$.key").value(VALIDATION_KEY));
 
         // Test with user1 (still empty password)
         mockMvc.perform(post("/api/storage/login")
@@ -115,13 +119,13 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("user1"))
-                .andExpect(jsonPath("$.key").value("2e3f4b6c3e2566274023542970455031"));
+                .andExpect(jsonPath("$.key").value(VALIDATION_KEY));
     }
 
     @Test
     public void login_failed() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             "https://zefiro.me/sapi/login?action=login",
             new StubHttpResponse<String>().statusCode(401).text("{\"success\": false}")
         );
@@ -147,16 +151,14 @@ public class StorageControllerTest {
 
     @Test
     public void login_with_various_credentials() throws Exception {
-        HttpClientStubber client = (HttpClientStubber)httpClientBuilder;
+        HttpClientStubber client = httpClientBuilder;
 
         // Given
         client.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me"),
-                    new BodyMatcher("login=&password=user1password1")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me"),
+                new BodyMatcher("login=&password=user1password1")
             ), new StubHttpResponse<String>().statusCode(200).text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
         );
 
@@ -166,16 +168,14 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\":user1password1\"}")) // Credentials without ':'
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value(""))
-                .andExpect(jsonPath("$.key").value("2e3f4b6c3e2566274023542970455031"));
+                .andExpect(jsonPath("$.key").value(VALIDATION_KEY));
 
         client.stubs().clear();
         client.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me"),
-                    new BodyMatcher("login=++++&password=pwd")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me"),
+                new BodyMatcher("login=++++&password=pwd")
             ), new StubHttpResponse<String>().statusCode(200).text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
         );
         mockMvc.perform(post("/api/storage/login")
@@ -183,18 +183,16 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"    :pwd\"}")) // blank account
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("    "))
-                .andExpect(jsonPath("$.key").value("2e3f4b6c3e2566274023542970455031"));
+                .andExpect(jsonPath("$.key").value(VALIDATION_KEY));
     }
 
     @Test
     public void login_zefiro_connection_error() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new NetworkError()
         );
@@ -211,12 +209,10 @@ public class StorageControllerTest {
     @Test
     public void login_zefiro_invalid_json_response() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new StubHttpResponse<String>().text("This is not JSON") // Invalid JSON response
         );
@@ -233,12 +229,10 @@ public class StorageControllerTest {
     @Test
     public void login_zefiro_missing_fields_in_response() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new StubHttpResponse<String>().text("{\"data\":{\"roles\":[{\"name\":\"sync_user\",\"description\":\"\"},{\"name\":\"zefiropro\",\"description\":\"\"}],\"jsessionid\":\"60B4626852904AFCF9AA25D858730F8E.1i164\"},\"responsetime\":1754811602118}")
         );
@@ -255,12 +249,10 @@ public class StorageControllerTest {
     @Test
     public void log_successful_login() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                    new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                    }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new StubHttpResponse<String>().text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
         );
@@ -280,7 +272,7 @@ public class StorageControllerTest {
     @Test
     public void log_failed_login() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             "https://zefiro.me/sapi/login?action=login",
             new StubHttpResponse<String>().statusCode(401).text("{\"success\": false}")
         );
@@ -300,12 +292,10 @@ public class StorageControllerTest {
     @Test
     public void log_zefiro_missing_fields() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new StubHttpResponse<String>().text("{\"data\":{\"roles\":[{\"name\":\"sync_user\",\"description\":\"\"},{\"name\":\"zefiropro\",\"description\":\"\"}],\"jsessionid\":\"60B4626852904AFCF9AA25D858730F8E.1i164\"},\"responsetime\":1754811602118}")
         );
@@ -324,12 +314,10 @@ public class StorageControllerTest {
     @Test
     public void log_login_connection_error() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new NetworkError()
         );
@@ -351,12 +339,10 @@ public class StorageControllerTest {
         Logger storageControllerLogger = Logger.getLogger(StorageController.class.getName());
         storageControllerLogger.setLevel(Level.OFF); // Set log level to OFF
 
-        ((HttpClientStubber) httpClientBuilder).withStub(
+        httpClientBuilder.withStub(
             new ANDMatcher(
-                    new RequestMatcher[] {
-                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
-                    new HeaderMatcher("Origin", "https://zefiro.me")
-                    }
+                new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                new HeaderMatcher("Origin", "https://zefiro.me")
             ),
             new StubHttpResponse<String>().text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
         );
@@ -374,26 +360,195 @@ public class StorageControllerTest {
     }
 
     @Test
+    public void write_new_file_successful() throws Exception {
+        // Given
+        MockHttpSession session = loginAndGetSession();
+
+        setUpFileStubs(httpClientBuilder).withStub(
+            new ANDMatcher(
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            ),
+            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
+        );
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/write")
+            .session(session)
+            .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_MODIFICATION_DATE.toInstant()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .andExpect(status().isOk())
+            .andExpect(
+                header().string("Last-Modified", "Tue, 19 Aug 2025 00:00:00 GMT")
+            );
+    }
+
+    @Test
+    public void write_file_precondition_failed_if_server_is_more_recent() throws Exception {
+        // Given
+        MockHttpSession session = loginAndGetSession();
+
+        setUpFileStubs(httpClientBuilder);
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/write")
+            .session(session)
+            .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"path\": \"/OneMediaHub/Toosla/toosla.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .andExpect(status().isPreconditionFailed())
+            .andExpect(
+                header().string("Last-Modified", "Tue, 19 Aug 2025 00:00:00 GMT")
+            )
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("Precondition Failed"))
+            .andExpect(jsonPath("$.details").value("Modification conflict detected"));
+    }
+
+    @Test
+    public void write_file_generic_zefiro_error() throws Exception {
+        // Given
+        MockHttpSession session = loginAndGetSession();
+
+        setUpFileStubs(httpClientBuilder);
+        httpClientBuilder.withStub(
+            new ANDMatcher(
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            ),
+            new StubHttpResponse<String>().statusCode(500).text("Generic Zefiro error during write")
+        );
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/write")
+            .session(session)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("Error writing file"))
+            .andExpect(jsonPath("$.details").value("Failed to upload file: 500"));
+
+        LogAssertions.then(logHandler.getRecords())
+                .containsSEVERE("Error writing file: /OneMediaHub/Toosla/new_file.json");
+    }
+
+    @Test
+    public void log_write_operations() throws Exception {
+        MockHttpSession session = loginAndGetSession();
+
+        // Scenario 1: Successful write
+        setUpFileStubs(httpClientBuilder).withStub(
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
+            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
+        );
+        mockMvc.perform(post("/api/storage/write")
+            .session(session)
+            .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_MODIFICATION_DATE.toInstant()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .andExpect(status().isOk());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/new_file.json with If-Unmodified-Since: " + FIXED_MODIFICATION_DATE)
+                .containsINFO("File written successfully: /OneMediaHub/Toosla/new_file.json");
+
+        //
+        // Scenario 2: Precondition Failed
+        //
+        logHandler.getRecords().clear(); httpClientBuilder.stubs().clear();
+
+        httpClientBuilder.stubs().clear(); setUpFileStubs(httpClientBuilder);
+        mockMvc.perform(post("/api/storage/write")
+            .session(session)
+            .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"path\": \"/OneMediaHub/Toosla/toosla.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .andExpect(status().isPreconditionFailed());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/toosla.json with If-Unmodified-Since: " + FIXED_EARLIER_DATE)
+                .containsWARNING("Precondition Failed for file: /OneMediaHub/Toosla/toosla.json - Modification conflict detected");
+
+        //
+        // Scenario 3: File not found
+        //
+        logHandler.getRecords().clear(); httpClientBuilder.stubs().clear();
+
+        httpClientBuilder.withStub(
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[]}}")
+        );
+        mockMvc.perform(post("/api/storage/write")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+                .andExpect(status().isNotFound());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/new_file.json with If-Unmodified-Since: null")
+                .containsWARNING("File not found: /OneMediaHub/Toosla/new_file.json");
+
+        //
+        // Scenario 4: Generic Zefiro error
+        //
+        logHandler.getRecords().clear(); httpClientBuilder.stubs().clear(); // Clear logs for next scenario
+        httpClientBuilder.withStub(
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
+            new StubHttpResponse<String>().statusCode(500).text("Generic Zefiro error during write")
+        );
+        mockMvc.perform(post("/api/storage/write")
+            .session(session)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .andExpect(status().isInternalServerError());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/new_file.json with If-Unmodified-Since: null")
+                .containsSEVERE("Error writing file: /OneMediaHub/Toosla/new_file.json");
+    }
+
+    @Test
     public void read_file_not_found() throws Exception {
         // Given
-        ((HttpClientStubber) httpClientBuilder).withStub(
-            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=test_key",
+        MockHttpSession session = loginAndGetSession();
+
+        httpClientBuilder.withStub(
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"OneMediaHub\",\"id\":47487}]}}")
         ).withStub(
-            "https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=test_key",
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"Toosla\",\"id\":12345}]}}")
         ).withStub(
-            "https://zefiro.me/sapi/media/folder?action=list&parentid=12345&limit=200&validationkey=test_key",
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media/folder?action=list&parentid=12345&limit=200&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[]}}")
         ).withStub(
-            "https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=test_key",
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
             new StubHttpResponse<String>().text("{\"data\":{\"media\":[]}}")
         );
 
         // When & Then
         mockMvc.perform(post("/api/storage/read")
+                .session(session)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Validation-Key", "test_key")
                 .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
@@ -402,13 +557,15 @@ public class StorageControllerTest {
     }
 
     @Test
-    public void read_without_if_modified_since() throws Exception {
-        ZefiroClientTest.setUpDownloadStubs(httpClientBuilder, 0);
+    public void read_from_wrong_path() throws Exception {
+        MockHttpSession session = loginAndGetSession();
+
+        setUpFileStubs(httpClientBuilder);
 
         // When & Then
         mockMvc.perform(post("/api/storage/read")
+                .session(session)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Validation-Key", "test_key")
                 .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
@@ -418,31 +575,143 @@ public class StorageControllerTest {
 
     @Test
     public void read_when_if_modified_since_is_in_the_past() throws Exception {
-        final Date NOW = new Date();
-        ZefiroClientTest.setUpDownloadStubs(httpClientBuilder, NOW.getTime()-(60*60*1000));
+        MockHttpSession session = loginAndGetSession();
+
+        setUpFileStubs(httpClientBuilder);
 
         // When & Then
         mockMvc.perform(post("/api/storage/read")
+                .session(session)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Validation-Key", "test_key")
-                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(NOW.toInstant()))
+                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_LATER_DATE.toInstant()))
                 .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
                 .andExpect(status().isNotModified());
     }
 
     @Test
     public void read_when_if_modified_since_is_in_the_future() throws Exception {
-        final Date NOW = new Date();
-        ZefiroClientTest.setUpDownloadStubs(httpClientBuilder, NOW.getTime()+(60*60*1000));
+        MockHttpSession session = loginAndGetSession();
+
+        setUpFileStubs(httpClientBuilder);
 
         // When & Then
         mockMvc.perform(post("/api/storage/read")
+                .session(session)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Validation-Key", "test_key")
-                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(NOW.toInstant()))
+                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
                 .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string("{\"content\":\"this is toosla\"}"));
+    }
+
+    @Test
+    public void read_file_generic_zefiro_error() throws Exception {
+        MockHttpSession session = loginAndGetSession();
+
+         // When & Then
+        mockMvc.perform(post("/api/storage/read")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Error reading file"))
+                .andExpect(jsonPath("$.details").value("Error connecting to Zefiro"));
+
+        LogAssertions.then(logHandler.getRecords())
+                .containsSEVERE("Error reading file: /OneMediaHub/Toosla/toosla.json");
+    }
+
+    @Test
+    public void log_read_operations() throws Exception {
+        MockHttpSession session = loginAndGetSession();
+
+        // Scenario 1: Successful read
+        setUpFileStubs(httpClientBuilder);
+        mockMvc.perform(post("/api/storage/read")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
+                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .andExpect(status().isOk());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/toosla.json if modified since " + FIXED_EARLIER_DATE)
+                .containsINFO("File read successfully: /OneMediaHub/Toosla/toosla.json");
+        //
+        // Scenario 2: File not modified
+        //
+        logHandler.getRecords().clear(); httpClientBuilder.stubs().clear();
+        setUpFileStubs(httpClientBuilder);
+        mockMvc.perform(post("/api/storage/read")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_LATER_DATE.toInstant()))
+                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .andExpect(status().isNotModified());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/toosla.json if modified since " + FIXED_LATER_DATE)
+                .containsINFO("File not modified: /OneMediaHub/Toosla/toosla.json");
+
+        //
+        // Scenario 3: File not found
+        //
+        logHandler.getRecords().clear(); httpClientBuilder.stubs().clear();
+        httpClientBuilder.withStub(
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=test_key"),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
+            new StubHttpResponse<String>().text("{\"data\":{\"folders\":[]}}")
+        );
+        mockMvc.perform(post("/api/storage/read")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
+                .andExpect(status().isNotFound());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/not_found.json if modified since null")
+                .containsWARNING("File not found: /OneMediaHub/Toosla/not_found.json");
+        logHandler.getRecords().clear(); // Clear logs for next scenario
+
+        //
+        // Scenario 4: Generic Zefiro error
+        //
+        logHandler.getRecords().clear(); httpClientBuilder.stubs().clear();
+        httpClientBuilder.withStub(
+            new ANDMatcher(new RequestMatcher[] {
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+            }),
+            new StubHttpResponse<String>().statusCode(500).text("Generic Zefiro error during read")
+        );
+        mockMvc.perform(post("/api/storage/read")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .andExpect(status().isInternalServerError());
+        LogAssertions.then(logHandler.getRecords())
+                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/toosla.json if modified since null")
+                .containsSEVERE("Error reading file: /OneMediaHub/Toosla/toosla.json");
+    }
+
+    // --------------------------------------------------------- private methods
+
+    private MockHttpSession loginAndGetSession() throws Exception {
+        httpClientBuilder.withStub(
+            new ANDMatcher(
+                new RequestMatcher[] {
+                    new URIMatcher("https://zefiro.me/sapi/login?action=login"),
+                    new HeaderMatcher("Origin", "https://zefiro.me"),
+                    new BodyMatcher("login=test_user&password=test_password")
+                }
+            ),
+            new StubHttpResponse<String>().text(SUCCESSFUL_ZEFIRO_LOGIN_RESPONSE)
+        );
+        return (MockHttpSession) mockMvc.perform(post("/api/storage/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"credentials\":\"test_user:test_password\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession();
     }
 }

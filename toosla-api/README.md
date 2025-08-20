@@ -9,10 +9,9 @@ The `toosla-api` project aims to provide a backend API for a web application tha
 The following API endpoints are currently implemented:
 
 *   **`POST /api/storage/login`**: Authenticates and authorizes a user to access the remote storage. This endpoint handles user credentials and returns a validation key for subsequent storage operations.
-
-*   **`GET /health`**: Provides a health check for the API, returning the service status and other relevant information.
-
 *   **`POST /api/storage/read`**: Reads the latest snapshot of data from the remote storage. This endpoint supports conditional retrieval using the `If-Modified-Since` header. If the data has not been modified since the provided timestamp, a `304 Not Modified` status is returned. Otherwise, the latest data is returned.
+*   **`POST /api/storage/write`**: Writes a snapshot of local storage data to the remote storage.
+*   **`GET /health`**: Provides a health check for the API, returning the service status and other relevant information.
 
 ## Zefiro API
 
@@ -79,9 +78,3 @@ The following API endpoints are currently implemented:
  GET https://zefiro.me/sapi/download/file?action=get&k=RlV...eWU&node=1i164&filename=identity-prod.tgz
  <   ... binary data ...
 `
-
-## Planned Endpoints
-
-The following endpoints are planned for future implementation:
-
-*   **`POST /api/storage/write`**: Used to write a snapshot of local storage data to the remote storage.

@@ -24,8 +24,9 @@ package ste.toosla.api;
 import jakarta.validation.Valid;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.net.http.HttpClient;
+import java.time.ZoneId;
 import java.util.logging.Level;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,6 +49,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestHeader;
+import ste.toosla.zefiro.ZefiroModificationException;
 
 @RestController
 public class StorageController {
@@ -61,11 +63,11 @@ public class StorageController {
     //
     private final Pattern pattern = Pattern.compile("^([^:]*?)(?::(.*))?$");
 
-    private final ZefiroClient zefiroClient;
+    @Autowired
+    private ZefiroClient zefiroClient;
     private final ObjectMapper objectMapper;
 
-    public StorageController(HttpClient.Builder httpClientBuilder, ObjectMapper objectMapper) {
-        this.zefiroClient = new ZefiroClient(httpClientBuilder);
+    public StorageController(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -119,13 +121,12 @@ public class StorageController {
     @PostMapping("/api/storage/read")
     public ResponseEntity<?> read(
             @Valid @RequestBody ReadRequest readRequest,
-            @RequestHeader("X-Validation-Key") String validationKey,
             @RequestHeader(name = "If-Modified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Date ifModifiedSince) {
         LOG.info(() -> "Attempting to read file: " + readRequest.path() + " if modified since " + ifModifiedSince);
         try {
-            Optional<String> content = zefiroClient.download(readRequest.path(), validationKey, ifModifiedSince);
+            Optional<String> content = zefiroClient.download(readRequest.path(), ifModifiedSince);
             if (content.isPresent()) {
                 LOG.info(() -> "File read successfully: " + readRequest.path());
                 return ResponseEntity
@@ -144,6 +145,38 @@ public class StorageController {
             LOG.log(Level.SEVERE, x, () -> "Error reading file: " + readRequest.path());
             return ResponseEntity.internalServerError().body(
                     new ErrorResponse("Error reading file", x.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/storage/write")
+    public ResponseEntity<?> write(
+            @Valid @RequestBody ste.toosla.api.dto.WriteRequest writeRequest,
+            @RequestHeader(name = "If-Unmodified-Since", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Date ifUnmodifiedSince) {
+        LOG.info(() -> "Attempting to write file: " + writeRequest.path() + " with If-Unmodified-Since: " + ifUnmodifiedSince);
+        try {
+            zefiroClient.upload(writeRequest.path(), writeRequest.content(), ifUnmodifiedSince);
+            LOG.info(() -> "File written successfully: " + writeRequest.path());
+            if (ifUnmodifiedSince != null) {
+                return ResponseEntity.ok().lastModified(ifUnmodifiedSince.toInstant().atZone(ZoneId.of("UTC"))).build();
+            }
+            return ResponseEntity.ok().build();
+        } catch (ZefiroFileNotFoundException x) {
+            LOG.warning(() -> "File not found: " + writeRequest.path());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ErrorResponse("File not found", x.getMessage()));
+        } catch (ZefiroModificationException x) {
+            LOG.warning(() -> "Precondition Failed for file: " + writeRequest.path() + " - " + x.getMessage());
+            ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(HttpStatus.PRECONDITION_FAILED);
+            if (x.lastModified.isPresent()) {
+                responseBuilder.lastModified(x.lastModified.get().getTime());
+            }
+            return responseBuilder.body(new ErrorResponse("Precondition Failed", x.getMessage()));
+        } catch (ZefiroException x) {
+            LOG.log(Level.SEVERE, x, () -> "Error writing file: " + writeRequest.path());
+            return ResponseEntity.internalServerError().body(
+                    new ErrorResponse("Error writing file", x.getMessage()));
         }
     }
 }

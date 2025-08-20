@@ -48,6 +48,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/storage/login").permitAll()
                 .requestMatchers("/api/storage/read").permitAll()
+                .requestMatchers("/api/storage/write").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .anyRequest().authenticated()
             )

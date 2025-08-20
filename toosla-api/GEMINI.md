@@ -48,3 +48,9 @@ Some additional important context:
 - we gather the creation date of the item on zefiro side from /data/creationdate when requesting the metadata of the file (ie. when we ask for the url); this timestamp is a unix timestap and we can take it as last modification timestamp on zefiro
 - if the item's creation timestamp is more recent than the provided "modified since" timestamp, we download and return the content
 - if the item's creation timestamp is not more recent, we return a 304 up to date status
+
+# ZefiroClient Basic Authentication
+
+- Zefiro API supports to send credentials in each call in the Authorization HTTP header using Basic schema
+- to do so, ZefiroClient can keep the credentials after login and reuse them in subsequent calls
+- ZefiroController shall then create an instance of ZefiroClient only once in a session
