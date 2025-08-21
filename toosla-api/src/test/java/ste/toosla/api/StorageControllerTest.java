@@ -366,7 +366,7 @@ public class StorageControllerTest {
 
         setUpFileStubs(httpClientBuilder).withStub(
             new ANDMatcher(
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=test_key"),
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=test_key"),
                 new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
             ),
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
@@ -414,7 +414,7 @@ public class StorageControllerTest {
         setUpFileStubs(httpClientBuilder);
         httpClientBuilder.withStub(
             new ANDMatcher(
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
                 new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
             ),
             new StubHttpResponse<String>().statusCode(500).text("Generic Zefiro error during write")
@@ -441,7 +441,7 @@ public class StorageControllerTest {
         // Scenario 1: Successful write
         setUpFileStubs(httpClientBuilder).withStub(
             new ANDMatcher(new RequestMatcher[] {
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
                 new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
             }),
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
@@ -499,7 +499,7 @@ public class StorageControllerTest {
         logHandler.getRecords().clear(); httpClientBuilder.stubs().clear(); // Clear logs for next scenario
         httpClientBuilder.withStub(
             new ANDMatcher(new RequestMatcher[] {
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
                 new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
             }),
             new StubHttpResponse<String>().statusCode(500).text("Generic Zefiro error during write")

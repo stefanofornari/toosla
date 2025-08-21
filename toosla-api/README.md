@@ -46,12 +46,12 @@ The following API endpoints are currently implemented:
 ### Upload a file
 
 `
-  POST https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=543...d20
+  POST https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=543...d20
   > multipart
   ------geckoformboundary8267430e1b10bd40b9bf906074cf7b95
   Content-Disposition: form-data; name="data"
 
-  {"data":{"name":"test.json","size":21,"modificationdate":"20250815T174426Z","contenttype":"application/json","folderid":867202}}
+  {"data":{"name":"test.json","size":21,"modificationdate":"20250815T174426Z","contenttype":"application/json","folderid":867202,"id":112233}}
   ------geckoformboundary8267430e1b10bd40b9bf906074cf7b95
   Content-Disposition: form-data; name="file"; filename="test.json"
   Content-Type: application/json
@@ -62,6 +62,7 @@ The following API endpoints are currently implemented:
   ------geckoformboundary8267430e1b10bd40b9bf906074cf7b95--
   > {"success":"Media uploaded successfully","id":"680245514","status":"V","etag":"J7XxRng02rtVeS3X9Wj58Q==","responsetime":1755272687861,"type":"file"}
 `
+Note that id in the metadata part shall be provided to override the item with the provided id
 
 ### Delete a file
   POST https://zefiro.me/sapi/media/file?action=delete&softdelete=true&validationkey=543...d20

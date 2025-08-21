@@ -130,7 +130,7 @@ public class ZefiroClientTest {
         // Given
         zefiro.login("test_user", "test_password");
         setUpTreeStubs(httpClientBuilder).withStub(
-            "https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY,
+            "https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY,
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
         );
 
@@ -176,37 +176,70 @@ public class ZefiroClientTest {
         // The creationDate passed to setUpFileStubs will be the "current" modification date on Zefiro.
         setUpFileStubs(httpClientBuilder).withStub(
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media/file?action=delete&softdelete=true&validationkey=" + VALIDATION_KEY),
-                new BodyMatcher("{\"data\":{\"files\":[11111]}}"),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
-            ),
-            new StubHttpResponse<String>().text("{\"success\":\"Media deleted successfully\"}")
-        ).withStub(
-            new ANDMatcher(
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
                 new BodyMatcher(Pattern.compile(
                     "\\A(------WebKitFormBoundary\\d+)\\r\\n" +
                     "Content-Disposition: form-data; name=\"data\"\\r\\n" +
                     "Content-Type: application/json\\r\\n" +
                     "\\r\\n" +
-                    Pattern.quote("{\"data\":{\"name\":\"toosla.json\",\"size\":23,\"modificationdate\":1767225600000,\"contenttype\":\"application/json\",\"folderid\":12345}}") + "\\r\\n" +
+                    Pattern.quote("{\"data\":{\"name\":\"toosla.json\",\"size\":23,\"modificationdate\":1767225600000,\"contenttype\":\"application/json\",\"folderid\":12345,\"id\":11111}}") + "\\r\\n" +
                     "\\1\\r\\n" +
                     "Content-Disposition: form-data; name=\"file\"; filename=\"toosla\\.json\"\\r\\n" +
                     "Content-Type: application/json\\r\\n" +
                     "\\r\\n" +
                     Pattern.quote("{\"key\":\"updated_value\"}") + "\\r\\n" +
-                    "\\1--\\r\\n\\z"
-                )),
+                    "\\1--\\r\\n\\z")
+                ),
                 new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
             ),
-            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
+            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"11111\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
         );
 
         // When
         String uploadedFileId = zefiro.upload(path, content, FIXED_LATER_DATE);
 
         // Then
-        then(uploadedFileId).isEqualTo("12345");
+        then(uploadedFileId).isEqualTo("11111");
+    }
+
+    @Test
+    public void upload_new_file_does_not_send_id() throws Exception {
+        // Given
+        zefiro.login("test_user", "test_password");
+
+        final String path = "/OneMediaHub/Toosla/new_file.json";
+        final String content = "{\"key\":\"new_value\"}";
+
+        final String body =
+            "\\A(------WebKitFormBoundary\\d+)\\r\\n" +
+            "Content-Disposition: form-data; name=\"data\"\\r\\n" +
+            "Content-Type: application/json\\r\\n" +
+            "\\r\\n" +
+            Pattern.quote("{\"data\":{\"name\":\"new_file.json\",\"size\":19,\"modificationdate\":" + FIXED_LATER_DATE.getTime() + ",\"contenttype\":\"application/json\",\"folderid\":12345}}") + "\\r\\n" +
+            "\\1\\r\\n" +
+            "Content-Disposition: form-data; name=\"file\"; filename=\"new_file\\.json\"\\r\\n" +
+            "Content-Type: application/json\\r\\n" +
+            "\\r\\n" +
+            Pattern.quote(content) + "\\r\\n" +
+            "\\1--\\r\\n\\z";
+
+        System.out.println("expected: \n" + body);
+
+        setUpFileStubs(httpClientBuilder).withStub( // this does not contain /OneMediaHub/Toosla/new_file.json
+            new ANDMatcher(
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
+                new BodyMatcher(Pattern.compile(
+                    body
+                ))
+            ),
+            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"67890\"}")
+        );
+
+        // When
+        String fileId = zefiro.upload(path, content, FIXED_LATER_DATE);
+
+        // Then
+        then(fileId).isEqualTo("67890");
     }
 
     //

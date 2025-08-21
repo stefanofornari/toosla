@@ -128,6 +128,7 @@ public class ZefiroClient {
 
             // Hardcoded folderId for now, as per simplified requirement
             long folderId = findFolderId(pathParts);
+            long fileId = 0;
 
             // Check If-Unmodified-Since precondition
             if (ifUnmodifiedSince != null) {
@@ -137,9 +138,8 @@ public class ZefiroClient {
                     if (creationDate > ifUnmodifiedSince.getTime()) {
                         throw new ZefiroModificationException(new Date(creationDate));
                     } else {
-                        // Precondition met, delete existing file before uploading new one
-                        long fileId = existingFileMetadata.get().at("/id").asLong();
-                        deleteFile(fileId);
+                        // Precondition met, get existing file id to update it
+                        fileId = existingFileMetadata.get().at("/id").asLong();
                     }
                 }
             } else {
@@ -147,27 +147,37 @@ public class ZefiroClient {
             }
 
             // Construct multipart body
-            String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+            String boundary = "------WebKitFormBoundary" + System.currentTimeMillis();
             String contentType = "multipart/form-data; boundary=" + boundary;
 
             StringBuilder bodyBuilder = new StringBuilder();
 
             // Part 1: data field (metadata)
-            bodyBuilder.append("--").append(boundary).append("\r\n");
+            bodyBuilder.append(boundary).append("\r\n");
             bodyBuilder.append("Content-Disposition: form-data; name=\"data\"").append("\r\n");
             bodyBuilder.append("Content-Type: application/json").append("\r\n\r\n");
-            bodyBuilder.append("{\"data\":{\"name\":\"").append(fileName).append("\",\"size\":").append(content.length()).append(",\"modificationdate\":").append(ifUnmodifiedSince.getTime()).append(",\"contenttype\":\"application/json\",\"folderid\":").append(folderId).append("}}").append("\r\n");
+
+            StringBuilder jsonData = new StringBuilder();
+            jsonData.append("{\"data\":{\"name\":\"").append(fileName).append("\",\"size\":").append(content.length()).append(",\"modificationdate\":").append(ifUnmodifiedSince.getTime()).append(",\"contenttype\":\"application/json\",\"folderid\":").append(folderId);
+            if (fileId > 0) {
+                jsonData.append(",\"id\":").append(fileId);
+            }
+            jsonData.append("}}");
+
+            bodyBuilder.append(jsonData.toString()).append("\r\n");
 
             // Part 2: file field (content)
-            bodyBuilder.append("--").append(boundary).append("\r\n");
+            bodyBuilder.append(boundary).append("\r\n");
             bodyBuilder.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName).append("\"").append("\r\n");
             bodyBuilder.append("Content-Type: application/json").append("\r\n\r\n");
             bodyBuilder.append(content).append("\r\n");
 
-            bodyBuilder.append("--").append(boundary).append("--\r\n");
+            bodyBuilder.append(boundary).append("--\r\n");
+
+            System.out.println("actual\n" + bodyBuilder);
 
             HttpRequest uploadRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=true&validationkey=" + this.validationKey))
+                    .uri(URI.create("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + this.validationKey))
                     .header("Content-Type", contentType)
                     .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
                     .POST(HttpRequest.BodyPublishers.ofString(bodyBuilder.toString()))

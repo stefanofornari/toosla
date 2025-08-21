@@ -116,7 +116,7 @@ export class TooslaStorage {
 
         try {
             const headers = {
-                "authorization": `token ${this.apiKey}`
+                "Authorization": `token ${this.apiKey}`
             };
 
             if (this.lastModified) {
