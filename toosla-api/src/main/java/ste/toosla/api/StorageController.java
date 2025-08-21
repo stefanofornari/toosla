@@ -1,57 +1,42 @@
-/*
- * Toosla.me
- * ---------
- *
- * Copyright (C) 2025 Stefano Fornari. Licensed under the
- * EUPL-1.2 or later (see LICENSE).
- *
- * All Rights Reserved.  No use, copying or distribution of this
- * work may be made except in accordance with a valid license
- * agreement from Stefano Fornari.  This notice must be
- * included on all copies, modifications and derivatives of this
- * work.
- *
- * STEFANO FORNARI MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY
- * OF THE SOFTWARE, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT. STEFANO FORNARI SHALL NOT BE LIABLE FOR ANY
- * DAMAGES SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR DISTRIBUTING
- * THIS SOFTWARE OR ITS DERIVATIVES.
- */
-
 package ste.toosla.api;
 
-import jakarta.validation.Valid;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.time.ZoneId;
+import java.util.Date;
+import java.util.Optional;
 import java.util.logging.Level;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import ste.toosla.api.dto.LoginRequest;
-import ste.toosla.api.dto.ReadRequest;
-
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import ste.toosla.api.dto.ErrorResponse;
-import ste.toosla.zefiro.ZefiroClient;
-import ste.toosla.zefiro.ZefiroException;
-import ste.toosla.zefiro.ZefiroLoginException;
-import ste.toosla.zefiro.ZefiroLoginResponse;
-import ste.toosla.zefiro.ZefiroFileNotFoundException;
-import java.util.Optional;
-import java.util.Date;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RestController;
+import ste.toosla.api.dto.ErrorResponse;
+import ste.toosla.api.dto.LoginRequest;
+import ste.toosla.api.dto.ReadRequest;
+import ste.toosla.zefiro.ZefiroClient;
+import ste.toosla.zefiro.ZefiroException;
+import ste.toosla.zefiro.ZefiroFileNotFoundException;
+import ste.toosla.zefiro.ZefiroLoginException;
+import ste.toosla.zefiro.ZefiroLoginResponse;
 import ste.toosla.zefiro.ZefiroModificationException;
 
 @RestController
+@Tag(name = "Storage", description = "API for storing and retrieving data from the remote storage.")
 public class StorageController {
 
     private static final Logger LOG = Logger.getLogger(StorageController.class.getName());
@@ -72,7 +57,23 @@ public class StorageController {
     }
 
     @PostMapping("/api/storage/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) throws Exception {
+    @Operation(summary = "Login to the storage service",
+               description = "Authenticates the user with the given credentials and returns a session key.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Login successful",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ZefiroLoginResponse.class))),
+                   @ApiResponse(responseCode = "401", description = "Invalid credentials",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class))),
+                   @ApiResponse(responseCode = "500", description = "Internal server error",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class)))
+               })
+    public ResponseEntity<?> login(
+            @Parameter(description = "User credentials for login.", required = true,
+                       schema = @Schema(implementation = LoginRequest.class))
+            @Valid @RequestBody LoginRequest loginRequest) throws Exception {
         LOG.info(() -> "Attempting login");
         //
         // Extract credentials from the LoginRequest record and process them
@@ -119,8 +120,25 @@ public class StorageController {
     }
 
     @PostMapping("/api/storage/read")
+    @Operation(summary = "Read a file from the storage",
+               description = "Reads the content of a file from the remote storage. The `If-Modified-Since` header can be used to check if the file has been modified.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "File content",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(type = "string"))),
+                   @ApiResponse(responseCode = "304", description = "Not Modified"),
+                   @ApiResponse(responseCode = "404", description = "File not found",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class))),
+                   @ApiResponse(responseCode = "500", description = "Internal server error",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class)))
+               })
     public ResponseEntity<?> read(
+            @Parameter(description = "Path of the file to read.", required = true,
+                       schema = @Schema(implementation = ReadRequest.class))
             @Valid @RequestBody ReadRequest readRequest,
+            @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
             @RequestHeader(name = "If-Modified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Date ifModifiedSince) {
@@ -149,8 +167,25 @@ public class StorageController {
     }
 
     @PostMapping("/api/storage/write")
+    @Operation(summary = "Write a file to the storage",
+               description = "Writes the content of a file to the remote storage. The `If-Unmodified-Since` header can be used to prevent overwriting a more recent version of the file.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "File written successfully"),
+                   @ApiResponse(responseCode = "404", description = "File not found",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class))),
+                   @ApiResponse(responseCode = "412", description = "Precondition Failed",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class))),
+                   @ApiResponse(responseCode = "500", description = "Internal server error",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class)))
+               })
     public ResponseEntity<?> write(
+            @Parameter(description = "Path and content of the file to write.", required = true,
+                       schema = @Schema(implementation = ste.toosla.api.dto.WriteRequest.class))
             @Valid @RequestBody ste.toosla.api.dto.WriteRequest writeRequest,
+            @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
             @RequestHeader(name = "If-Unmodified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Date ifUnmodifiedSince) {
