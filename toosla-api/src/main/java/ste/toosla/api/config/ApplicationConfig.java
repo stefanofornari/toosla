@@ -23,12 +23,15 @@ package ste.toosla.api.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.context.annotation.SessionScope;
-import ste.toosla.zefiro.ZefiroClient;
+import org.springframework.web.context.annotation.ApplicationScope;
 
 import java.net.http.HttpClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ste.toosla.api.KeyManager;
 
+/**
+ * The main application configuration.
+ */
 @Configuration
 public class ApplicationConfig {
 
@@ -43,8 +46,8 @@ public class ApplicationConfig {
     }
 
     @Bean
-    @SessionScope
-    public ZefiroClient zefiroClient(HttpClient.Builder httpClientBuilder) {
-        return new ZefiroClient(httpClientBuilder);
+    @ApplicationScope
+    public KeyManager keyManager() {
+        return new KeyManager();
     }
 }

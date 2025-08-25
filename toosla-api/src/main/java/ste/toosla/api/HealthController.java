@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A controller that provides a health check endpoint for the API.
+ */
 @RestController
 public class HealthController {
 

@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.net.http.HttpClient;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+import ste.toosla.api.KeyManager.KeyEntry;
 import ste.toosla.api.dto.ErrorResponse;
 import ste.toosla.api.dto.LoginRequest;
 import ste.toosla.api.dto.ReadRequest;
@@ -35,6 +37,10 @@ import ste.toosla.zefiro.ZefiroLoginException;
 import ste.toosla.zefiro.ZefiroLoginResponse;
 import ste.toosla.zefiro.ZefiroModificationException;
 
+/**
+ * A controller that handles the storage-related API endpoints.
+ * This controller provides endpoints for logging in, reading, and writing files to the remote storage.
+ */
 @RestController
 @Tag(name = "Storage", description = "API for storing and retrieving data from the remote storage.")
 public class StorageController {
@@ -49,7 +55,9 @@ public class StorageController {
     private final Pattern pattern = Pattern.compile("^([^:]*?)(?::(.*))?$");
 
     @Autowired
-    private ZefiroClient zefiroClient;
+    private KeyManager keyManager;
+    @Autowired
+    private HttpClient.Builder httpClientBuilder;
     private final ObjectMapper objectMapper;
 
     public StorageController(ObjectMapper objectMapper) {
@@ -92,10 +100,20 @@ public class StorageController {
         ResponseEntity[] error = new ResponseEntity[1];
         Level errorLevel = Level.OFF;
         try {
-            ZefiroLoginResponse zefiroResponse = zefiroClient.login(account, secret);
+            ZefiroClient zefiroClient =
+                new ZefiroClient(account, secret).withHttpClientBuilder(httpClientBuilder);
+
+            ZefiroLoginResponse zefiroResponse = zefiroClient.login();
+
             ObjectNode apiResponse = objectMapper.createObjectNode();
+
+            final String validationKey = zefiroResponse.key();
+
+            final String accessKey = keyManager.newKey(account, secret, validationKey);
+
             apiResponse.put("account", zefiroResponse.account());
-            apiResponse.put("key", zefiroResponse.key());
+            apiResponse.put("key", accessKey);
+
             LOG.info(() -> "Login successful for account '" + account + "'");
 
             return ResponseEntity.ok().body(apiResponse);
@@ -141,9 +159,18 @@ public class StorageController {
             @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
             @RequestHeader(name = "If-Modified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            Date ifModifiedSince) {
+            Date ifModifiedSince,
+            @RequestHeader(name = "Authorization", required = false) String authorizationHeader) {
         LOG.info(() -> "Attempting to read file: " + readRequest.path() + " if modified since " + ifModifiedSince);
+
         try {
+            final KeyEntry keyEntry = getValidKey(authorizationHeader);
+
+            ZefiroClient zefiroClient =
+                new ZefiroClient(keyEntry.account(), keyEntry.secret())
+                    .withHttpClientBuilder(httpClientBuilder)
+                    .withValidationKey(keyEntry.validationKey());
+
             Optional<String> content = zefiroClient.download(readRequest.path(), ifModifiedSince);
             if (content.isPresent()) {
                 LOG.info(() -> "File read successfully: " + readRequest.path());
@@ -159,6 +186,9 @@ public class StorageController {
             LOG.warning(() -> "File not found: " + readRequest.path());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     new ErrorResponse("File not found", x.getMessage()));
+        } catch (ZefiroLoginException x) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    new ErrorResponse("Unauthorized", x.getMessage()));
         } catch (ZefiroException x) {
             LOG.log(Level.SEVERE, x, () -> "Error reading file: " + readRequest.path());
             return ResponseEntity.internalServerError().body(
@@ -188,9 +218,18 @@ public class StorageController {
             @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
             @RequestHeader(name = "If-Unmodified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            Date ifUnmodifiedSince) {
+            Date ifUnmodifiedSince,
+            @RequestHeader(name = "Authorization", required = false) String authorizationHeader) {
         LOG.info(() -> "Attempting to write file: " + writeRequest.path() + " with If-Unmodified-Since: " + ifUnmodifiedSince);
         try {
+            final KeyEntry keyEntry = getValidKey(authorizationHeader);
+
+            ZefiroClient zefiroClient =
+                new ZefiroClient(keyEntry.account(), keyEntry.secret())
+                .withHttpClientBuilder(httpClientBuilder)
+                .withValidationKey(keyEntry.validationKey());
+
+
             zefiroClient.upload(writeRequest.path(), writeRequest.content(), ifUnmodifiedSince);
             LOG.info(() -> "File written successfully: " + writeRequest.path());
             if (ifUnmodifiedSince != null) {
@@ -208,10 +247,28 @@ public class StorageController {
                 responseBuilder.lastModified(x.lastModified.get().getTime());
             }
             return responseBuilder.body(new ErrorResponse("Precondition Failed", x.getMessage()));
+        } catch (ZefiroLoginException x) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    new ErrorResponse("Unauthorized", x.getMessage()));
         } catch (ZefiroException x) {
             LOG.log(Level.SEVERE, x, () -> "Error writing file: " + writeRequest.path());
             return ResponseEntity.internalServerError().body(
                     new ErrorResponse("Error writing file", x.getMessage()));
         }
+    }
+
+    // --------------------------------------------------------- private methods
+
+    private KeyEntry getValidKey(final String authorizationHeader) throws ZefiroLoginException {
+        KeyEntry keyEntry = null;
+        if (
+            authorizationHeader == null ||
+            !authorizationHeader.startsWith("Bearer ") ||
+            (keyEntry = keyManager.get(authorizationHeader.substring(7))) == null
+            ) {
+                throw new ZefiroLoginException("Missing or invalid Authorization header");
+        }
+
+        return keyEntry;
     }
 }

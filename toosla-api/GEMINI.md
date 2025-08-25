@@ -54,3 +54,11 @@ Some additional important context:
 - Zefiro API supports to send credentials in each call in the Authorization HTTP header using Basic schema
 - to do so, ZefiroClient can keep the credentials after login and reuse them in subsequent calls
 - ZefiroController shall then create an instance of ZefiroClient only once in a session
+
+# API Security Refactoring
+
+- **ZefiroClient as a request object:** we will create a new `ZefiroClient` for each request to fit the stateless model.
+- **login() returns an access key:** the client will use this access key for subsequent requests.
+- **ZefiroClient keeps a cache of credentials-keys:** the server will maintain a cache of access keys. This cache will map the access key to the Zefiro validation key and credentials. The cache will also handle key expiration.
+- **Client sends `Authorization: Token <access key>`:** this is a standard way to send a token.
+- **Handle expired keys:** the server will check the access key on each request. If the key is expired or invalid, it will return an error, forcing the client to re-authenticate.

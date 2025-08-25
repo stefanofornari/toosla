@@ -15,6 +15,10 @@ import ste.toosla.zefiro.ZefiroFileNotFoundException;
 import java.security.GeneralSecurityException;
 import java.util.stream.Collectors;
 
+/**
+ * A global exception handler for the API.
+ * This class handles exceptions thrown by the controllers and returns a standardized error response.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

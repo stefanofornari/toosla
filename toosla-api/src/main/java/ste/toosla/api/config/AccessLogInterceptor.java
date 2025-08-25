@@ -6,6 +6,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.logging.Logger;
 
+/**
+ * An interceptor that logs access messages for each request.
+ * It logs the request method, URI, status, and duration.
+ */
 @Component
 public class AccessLogInterceptor implements HandlerInterceptor {
 

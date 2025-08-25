@@ -1,5 +1,6 @@
 package ste.toosla.zefiro;
 
+import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -26,19 +27,23 @@ public class ZefiroClientTest {
     public static final Date FIXED_EARLIER_DATE = new Date(1672531200000L); // Jan 1, 2023, 00:00:00 GMT
     public static final Date FIXED_LATER_DATE = new Date(1767225600000L); //  Jan 01 2026 00:00:00 GMT
 
-    public static final String VALIDATION_KEY = "test_key";
+    public static final String TEST_ACCOUNT = "test_user";
+    public static final String TEST_SECRET = "test_password";
+    public static final String TEST_BASIC_CREDENTIALS = Base64.getEncoder().encodeToString(
+        (TEST_ACCOUNT + ":" + TEST_SECRET).getBytes()
+    );
+
+    public static final String TEST_VALIDATION_KEY = "test_validation_key";
+    public static final String TEST_ACCESS_KEY = "test_access_key";
 
     private HttpClientStubber httpClientBuilder;
-    private ZefiroClient zefiro;
 
     @BeforeEach
     public void beforeEach() {
         httpClientBuilder = new HttpClientStubber();
-        zefiro = new ZefiroClient(httpClientBuilder);
         httpClientBuilder.stubs().clear();
-        httpClientBuilder.withStub(
-            "https://zefiro.me/sapi/login?action=login",
-            new StubHttpResponse<String>().text("{\"data\":{\"validationkey\":\"" + VALIDATION_KEY + "\"}}")
+        httpClientBuilder.withStub("https://zefiro.me/sapi/login?action=login",
+            new StubHttpResponse<String>().text("{\"data\":{\"validationkey\":\"" + TEST_VALIDATION_KEY + "\"}}")
         );
     }
 
@@ -48,18 +53,16 @@ public class ZefiroClientTest {
 
     @Test
     public void login_successful() throws Exception {
-        // Given
-        httpClientBuilder.withStub(
-            "https://zefiro.me/sapi/login?action=login",
-            new StubHttpResponse<String>().text("{\"data\":{\"validationkey\":\"test_key\"}}")
-        );
+
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password").withHttpClientBuilder(httpClientBuilder);
 
         // When
-        ZefiroLoginResponse response = zefiro.login("test_user", "test_password");
+        ZefiroLoginResponse response = zefiro.login();
 
         // Then
         then(response.account()).isEqualTo("test_user");
-        then(response.key()).isEqualTo("test_key");
+        then(response.key()).isEqualTo("test_validation_key");
     }
 
     @Test
@@ -71,8 +74,11 @@ public class ZefiroClientTest {
             new ste.xtest.net.http.StubHttpClient.NetworkError()
         );
 
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password").withHttpClientBuilder(httpClientBuilder);
+
         // When & Then
-        thenThrownBy(() -> zefiro.login("test_user", "test_password"))
+        thenThrownBy(() -> zefiro.login())
                 .isInstanceOf(ZefiroException.class)
                 .hasMessage("Error connecting to Zefiro");
     }
@@ -87,9 +93,11 @@ public class ZefiroClientTest {
         );
 
         // When & Then
-        thenThrownBy(() -> zefiro.login("test_user", "test_password"))
-                .isInstanceOf(ZefiroException.class)
-                .hasMessage("Invalid JSON response from Zefiro");
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password").withHttpClientBuilder(httpClientBuilder);
+        thenThrownBy(() -> zefiro.login())
+            .isInstanceOf(ZefiroException.class)
+            .hasMessage("Invalid JSON response from Zefiro");
     }
 
     @Test
@@ -101,8 +109,11 @@ public class ZefiroClientTest {
             new ste.xtest.net.http.StubHttpClient.StubHttpResponse<String>().text("{\"data\":{}}")
         );
 
+
         // When & Then
-        thenThrownBy(() -> zefiro.login("test_user", "test_password"))
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password").withHttpClientBuilder(httpClientBuilder);
+        thenThrownBy(() -> zefiro.login())
                 .isInstanceOf(ZefiroException.class)
                 .hasMessage("Missing or empty 'validationkey' in Zefiro response");
     }
@@ -117,7 +128,9 @@ public class ZefiroClientTest {
         );
 
         // When & Then
-        thenThrownBy(() -> zefiro.login("wrong_user", "wrong_password"))
+        ZefiroClient zefiro =
+            new ZefiroClient("wrong_user", "wrong_password").withHttpClientBuilder(httpClientBuilder);
+        thenThrownBy(() -> zefiro.login())
                 .isInstanceOf(ZefiroLoginException.class);
     }
 
@@ -126,11 +139,10 @@ public class ZefiroClientTest {
     //
 
     @Test
-    public void upload__without_if_modified_since() throws Exception {
+    public void upload_without_if_modified_since() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
-        setUpTreeStubs(httpClientBuilder).withStub(
-            "https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY,
+        ZefiroClient zefiro = newZefiroClient();
+        setUpTreeStubs(httpClientBuilder).withStub("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY,
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
         );
 
@@ -147,7 +159,10 @@ public class ZefiroClientTest {
     @Test
     public void do_not_upload_file_is_more_recent_than_if_unmodified_since() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
         String path = "/OneMediaHub/Toosla/toosla.json";
         String content = "{\"key\":\"new_value\"}";
 
@@ -167,16 +182,15 @@ public class ZefiroClientTest {
     @Test
     public void upload_if_file_is_not_more_recent_than_if_unmodified_since() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
+        ZefiroClient zefiro = newZefiroClient();
         String path = "/OneMediaHub/Toosla/toosla.json";
         String content = "{\"key\":\"updated_value\"}";
 
         // Stub Zefiro responses:
         // Use setUpFileStubs to set up the tree and file listing stubs.
         // The creationDate passed to setUpFileStubs will be the "current" modification date on Zefiro.
-        setUpFileStubs(httpClientBuilder).withStub(
-            new ANDMatcher(
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
+        setUpFileStubs(httpClientBuilder).withStub(new ANDMatcher(
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
                 new BodyMatcher(Pattern.compile(
                     "\\A(------WebKitFormBoundary\\d+)\\r\\n" +
                     "Content-Disposition: form-data; name=\"data\"\\r\\n" +
@@ -190,7 +204,7 @@ public class ZefiroClientTest {
                     Pattern.quote("{\"key\":\"updated_value\"}") + "\\r\\n" +
                     "\\1--\\r\\n\\z")
                 ),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"11111\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
         );
@@ -205,7 +219,7 @@ public class ZefiroClientTest {
     @Test
     public void upload_new_file_does_not_send_id() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
+        ZefiroClient zefiro = zefiro = newZefiroClient();
 
         final String path = "/OneMediaHub/Toosla/new_file.json";
         final String content = "{\"key\":\"new_value\"}";
@@ -223,11 +237,9 @@ public class ZefiroClientTest {
             Pattern.quote(content) + "\\r\\n" +
             "\\1--\\r\\n\\z";
 
-        System.out.println("expected: \n" + body);
-
-        setUpFileStubs(httpClientBuilder).withStub( // this does not contain /OneMediaHub/Toosla/new_file.json
+        setUpFileStubs(httpClientBuilder).withStub(// this does not contain /OneMediaHub/Toosla/new_file.json
             new ANDMatcher(
-                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
                 new BodyMatcher(Pattern.compile(
                     body
                 ))
@@ -248,7 +260,7 @@ public class ZefiroClientTest {
 
     @Test
     public void download_file_from_subfolder() throws Exception {
-        zefiro.login("test_user", "test_password");
+        ZefiroClient zefiro = zefiro = newZefiroClient();
         setUpFileStubs(httpClientBuilder);
 
         then(
@@ -259,9 +271,8 @@ public class ZefiroClientTest {
     @Test
     public void download_connection_error() {
         // Given
-        zefiro.login("test_user", "test_password");
-        httpClientBuilder.withStub(
-            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + VALIDATION_KEY,
+        ZefiroClient zefiro = newZefiroClient();
+        httpClientBuilder.withStub("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + TEST_VALIDATION_KEY,
             new ste.xtest.net.http.StubHttpClient.NetworkError()
         );
 
@@ -274,9 +285,11 @@ public class ZefiroClientTest {
     @Test
     public void download_invalid_json() {
         // Given
-        zefiro.login("test_user", "test_password");
-        httpClientBuilder.withStub(
-            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + VALIDATION_KEY,
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
+        httpClientBuilder.withStub("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + TEST_VALIDATION_KEY,
             new ste.xtest.net.http.StubHttpClient.StubHttpResponse<String>().text("this is not json")
         );
 
@@ -289,12 +302,14 @@ public class ZefiroClientTest {
     @Test
     public void download_file_not_found() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
-        setUpTreeStubs(httpClientBuilder).withStub(
-            //
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
+        setUpTreeStubs(httpClientBuilder).withStub(//
             // list /OneMesiaHub/Toosla/ (files)
             //
-            "https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=" + VALIDATION_KEY,
+            "https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=" + TEST_VALIDATION_KEY,
             new StubHttpResponse<String>().text("{\"data\":{\"media\":[]}}")
         );
 
@@ -307,18 +322,19 @@ public class ZefiroClientTest {
     @Test
     public void download_subdirectory_not_found() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
-        httpClientBuilder.withStub(
-            //
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
+        httpClientBuilder.withStub(//
             // list root folder
             //
-            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + VALIDATION_KEY,
+            "https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + TEST_VALIDATION_KEY,
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"OneMediaHub\",\"id\":47487,\"status\":\"N\",\"magic\":true,\"offline\":false,\"date\":1391491519230}]}}")
-        ).withStub(
-            //
+        ).withStub(//
             // list /OneMediaHub (folders) - does not contain "NonExistentSubdir"
             //
-            "https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=" + VALIDATION_KEY,
+            "https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=" + TEST_VALIDATION_KEY,
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"AnotherSubdir\",\"id\":67890,\"status\":\"N\",\"magic\":false,\"offline\":false,\"date\":456}]}}")
         );
 
@@ -331,7 +347,10 @@ public class ZefiroClientTest {
     @Test
     public void download_if_file_is_more_recent_than_if_modified_since() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+        .withHttpClientBuilder(httpClientBuilder)
+        .withValidationKey(TEST_VALIDATION_KEY);
         setUpFileStubs(httpClientBuilder);
 
         // When
@@ -344,7 +363,10 @@ public class ZefiroClientTest {
     @Test
     public void do_not_download_if_file_is_not_more_recent_than_if_modified_since() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
         setUpFileStubs(httpClientBuilder);
 
         // When
@@ -357,11 +379,13 @@ public class ZefiroClientTest {
     @Test
     public void download_uses_basic_authentication_after_login() throws Exception {
         // Given
-        zefiro.login("test_user", "test_password");
-        setUpFileStubs(httpClientBuilder).withStub(
-            new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + VALIDATION_KEY),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+        ZefiroClient zefiro =
+            new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
+        setUpFileStubs(httpClientBuilder).withStub(new ANDMatcher(
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + TEST_VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
                 "{\"data\":{\"media\":[{\"id\":\"11111\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_11111\",\"creationdate\":1755561600000}]}}"
@@ -375,34 +399,31 @@ public class ZefiroClientTest {
         // The test passes if the stub is matched, which means the Authorization header was sent.
     }
 
-    // --------------------------------------------------------- static methods
+    // ---------------------------------------------------------- static methods
 
     public static HttpClientStubber setUpTreeStubs(HttpClientStubber builder) {
-        builder.withStub(
-            //
+        builder.withStub(//
             // list root (folders)
             //
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + VALIDATION_KEY),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new URIMatcher("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + TEST_VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"OneMediaHub\",\"id\":47487}]}}")
-        ).withStub(
-            //
+        ).withStub(//
             // list /OneMediaHub (folders)
             //
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=" + VALIDATION_KEY),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new URIMatcher("https://zefiro.me/sapi/media/folder?action=list&parentid=47487&limit=200&validationkey=" + TEST_VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[{\"name\":\"Toosla\",\"id\":12345}]}}")
-        ).withStub(
-            //
+        ).withStub(//
             // list /OneMediaHub/Toosla (folders)
             //
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media/folder?action=list&parentid=12345&limit=200&validationkey=" + VALIDATION_KEY),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new URIMatcher("https://zefiro.me/sapi/media/folder?action=list&parentid=12345&limit=200&validationkey=" + TEST_VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text("{\"data\":{\"folders\":[]}}")
         );
@@ -416,8 +437,8 @@ public class ZefiroClientTest {
             // list /OneMediaHub/Toosla (files)
             //
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=" + VALIDATION_KEY),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&folderid=12345&limit=200&validationkey=" + TEST_VALIDATION_KEY),
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
                 "{\"data\":{\"media\":[{\"id\":\"11111\",\"name\":\"toosla.json\",\"creationdate\":1755561600000}, {\"id\":\"22222\",\"name\":\"another_toosla.json\",\"creationdate\":1755561600000}]}}"
@@ -427,9 +448,9 @@ public class ZefiroClientTest {
             // medatada for toosla.json
             //
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + TEST_VALIDATION_KEY),
                 new BodyMatcher("{\"data\":{\"ids\":[11111],\"fields\":[\"url\",\"creationdate\"]}}"),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
                 "{\"data\":{\"media\":[{\"id\":\"11111\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_11111\",\"creationdate\":1755561600000}]}}"
@@ -439,9 +460,9 @@ public class ZefiroClientTest {
             // medatada for another_toosla.json
             //
             new ANDMatcher(
-                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + VALIDATION_KEY),
+                new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + TEST_VALIDATION_KEY),
                 new BodyMatcher("{\"data\":{\"ids\":[22222],\"fields\":[\"url\",\"creationdate\"]}}"),
-                new HeaderMatcher("Authorization", "Basic dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=")
+                new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
                 "{\"data\":{\"media\":[{\"id\":\"22222\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_22222\",\"creationdate\":1755561600000}]}}"
@@ -461,5 +482,13 @@ public class ZefiroClientTest {
         );
 
         return builder;
+    }
+
+    // --------------------------------------------------------- private methods
+
+    private ZefiroClient newZefiroClient() {
+        return new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withValidationKey(TEST_VALIDATION_KEY);
     }
 }

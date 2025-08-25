@@ -1,5 +1,8 @@
 package ste.toosla.api.dto;
 
+/**
+ * Represents an error response from the API.
+ */
 public class ErrorResponse {
 
     private boolean success;

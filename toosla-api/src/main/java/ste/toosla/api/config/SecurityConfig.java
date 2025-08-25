@@ -30,6 +30,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
+/**
+ * Security configuration for the application.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

@@ -8,12 +8,14 @@ The `toosla-api` project aims to provide a backend API for a web application tha
 
 The following API endpoints are currently implemented:
 
-*   **`POST /api/storage/login`**: Authenticates and authorizes a user to access the remote storage. This endpoint handles user credentials and returns a validation key for subsequent storage operations.
+*   **`POST /api/storage/login`**: Authenticates and authorizes a user to access the remote storage. This endpoint handles user credentials and returns an access key for subsequent storage operations.
 *   **`POST /api/storage/read`**: Reads the latest snapshot of data from the remote storage. This endpoint supports conditional retrieval using the `If-Modified-Since` header. If the data has not been modified since the provided timestamp, a `304 Not Modified` status is returned. Otherwise, the latest data is returned.
-*   **`POST /api/storage/write`**: Writes a snapshot of local storage data to the remote storage.
+*   **`POST /api/storage/write`**: Writes a snapshot of local storage data to the remote storage. This endpoint supports conditional updates using the `If-Unmodified-Since` header. If the data on the server has been modified since the provided timestamp, a `412 Precondition Failed` status is returned.
 *   **`GET /health`**: Provides a health check for the API, returning the service status and other relevant information.
 
 ## Zefiro API
+
+**Note:** This section provides a general overview of the Zefiro API. Not all of the described features are implemented in the `toosla-api`.
 
 ### Get root folder
 
