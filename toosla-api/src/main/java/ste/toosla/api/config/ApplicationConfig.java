@@ -44,10 +44,4 @@ public class ApplicationConfig {
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
-
-    @Bean
-    @ApplicationScope
-    public KeyManager keyManager() {
-        return new KeyManager();
-    }
 }

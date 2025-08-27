@@ -24,11 +24,13 @@ package ste.toosla.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * The main entry point of the Toosla API application.
  */
 @SpringBootApplication
+@EnableScheduling
 public class TooslaApiApplication {
 
     public static void main(String[] args) {

@@ -20,17 +20,33 @@
  */
 package ste.toosla.api;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-/**
- * Manages access keys for the API.
- * This class is responsible for creating, storing, and retrieving access keys.
- */
+@Component
 public class KeyManager {
+    private static final Logger LOGGER = Logger.getLogger(KeyManager.class.getName());
 
-    final private Set<KeyEntry> entries = new HashSet();
+    final protected Set<KeyMetadata> entries = ConcurrentHashMap.newKeySet();
+    final protected long expirationTime;
+
+    // Internal class to hold entry metadata
+    private static class KeyMetadata {
+        final KeyEntry entry;
+        long lastUsed;
+
+        public KeyMetadata(KeyEntry entry) {
+            this.entry = entry;
+            this.lastUsed = System.currentTimeMillis();
+        }
+    }
 
     /**
      * Represents an entry for an access key.
@@ -40,23 +56,83 @@ public class KeyManager {
      * @param secret The user secret.
      * @param validationKey The validation key from Zefiro.
      */
-    public static record KeyEntry(String accessKey, String account, String secret, String validationKey) {
+    public static record KeyEntry(
+        String accessKey,
+        String account,
+        String secret,
+        String validationKey) {
     }
 
     public String newKey(final String account, final String secret, final String validationKey) {
         final String uuid = UUID.randomUUID().toString();
-        entries.add(new KeyEntry(uuid, account, secret, validationKey));
+        entries.add(
+            new KeyMetadata(
+                new KeyEntry(uuid, account, secret, validationKey)
+            )
+        );
 
         return uuid;
     }
 
+    public KeyManager(@org.springframework.beans.factory.annotation.Value("${toosla.keymanager.expiration-time-ms:300000}") long expirationTime) {
+        if (expirationTime <= 0) {
+            throw new IllegalArgumentException("expirationTime must be greater than zero");
+        }
+        this.expirationTime = expirationTime;
+    }
+
+    public long expirationTime() {
+        return expirationTime;
+    }
+
     public KeyEntry get(final String key) {
-        for (KeyEntry e: entries) {
-            if (e.accessKey.equals(key)) {
-                return e;
+        for (KeyMetadata e: entries) {
+            if (e.entry.accessKey.equals(key)) {
+                e.lastUsed = System.currentTimeMillis();
+                return e.entry;
             }
         }
         return null;
+    }
+
+    public boolean containsKey(String key) {
+        for (KeyMetadata e: entries) {
+            if (e.entry.accessKey.equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void clear() {
+        entries.clear();
+    }
+
+    /**
+     * Removes expired keys from the internal cache.
+     * This method is invoked by both tests and (optionally) the Spring @Scheduled task.
+     */
+    @Scheduled(fixedRateString = "${toosla.keymanager.cleanup-period-ms:300000}") // 5 min
+    public void cleanUp() {
+        LOGGER.info("Cleaning up expired keys");
+
+        final long now = System.currentTimeMillis();
+        List<String> expiredKeys = new ArrayList<>();
+
+        entries.removeIf(e -> {
+            if (now - e.lastUsed >= expirationTime) {
+                expiredKeys.add(e.entry.accessKey());
+                return true;
+            }
+            return false;
+        });
+
+        if (!expiredKeys.isEmpty()) {
+            String partialKeys = expiredKeys.stream()
+                .map(key -> key.substring(0, 3) + "..." + key.substring(key.length() - 3))
+                .collect(Collectors.joining(", "));
+            LOGGER.info("Keys [" + partialKeys + "] were expired and have been removed");
+        }
     }
 
 }
