@@ -41,7 +41,7 @@
             <outputDirectory>lib</outputDirectory>
             <directory>target</directory>
             <includes>
-                <include>${project.artifactId}-${project.version}.jar</include>
+                <include>${project.artifactId}-${project.version}.war</include>
             </includes>
         </fileSet>
         <fileSet>
