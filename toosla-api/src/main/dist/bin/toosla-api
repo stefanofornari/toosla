@@ -55,4 +55,4 @@ load_config $scriptname
 LOADER_PATH=${CLASSPATH//:/,}
 
 exec 2>&1
-exec $uidcmd "$javacmd" $JAVA_OPTS -cp "$CLASSPATH" org.springframework.boot.loader.launch.WarLauncher ste.toosla.api.TooslaApiApplication "$@"
+exec $uidcmd "$javacmd" $JAVA_OPTS -cp "$CLASSPATH:$home/lib" org.springframework.boot.loader.launch.PropertiesLauncher "$@"

@@ -22,6 +22,21 @@
     <p></p>
 </div>
 
+<dialog id="get-pin-dialog">
+    <div class="dialog-title">PIN</div>
+    <div class="dialog-content">
+        <input type=password
+               data-role="keypad"
+               data-key-size="48"
+               data-open="true"
+        >
+    </div>
+    <div class="dialog-actions">
+        <button class="button dark btn-confirm" ng-click="$ctrl.onSetPIN();" autofocus>OK</button>
+        <button class="button light primary btn-cancel" ng-click="">No PIN for now</button>
+    </div>
+</dialog>
+
 <dialog id="create-pin-dialog" class="toosla-pin-dialog">
     <div class="dialog-title">Create a new PIN</div>
     <div class="dialog-content">

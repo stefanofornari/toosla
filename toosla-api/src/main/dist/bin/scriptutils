@@ -25,7 +25,7 @@ set_java() {
 #
 # Parameters:
 #
-# 1. directory to scan for jars/wars
+# 1. directory to scan for jars
 # 2. main artifact prefix
 #
 set_classpath() {
@@ -39,7 +39,7 @@ set_classpath() {
 
   # Setting classpath
   cd "$1"
-  for jarfile in *.?ar
+  for jarfile in *.jar
   do
     if [ "${jarfile#$2}" != "$jarfile" ]
     then

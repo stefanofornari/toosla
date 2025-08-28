@@ -42,8 +42,7 @@ async function login(request) {
         if (failurePos < 0) {
             return MockServiceWorker.HttpResponse.json({
                 "account": credentials.substring(0, credentials.indexOf(":")),
-                "validationKey": "validation-key-" + credentials,
-                "accessKey": "access-key-" + credentials
+                "validationkey": "key-" + credentials
             });
         } else {
             //
@@ -160,7 +159,7 @@ async function write(request) {
 function authKey(request) {
     const key = request.headers.get("authorization");
 
-    if (key && key.startsWith("Bearer ")) {
+    if (key && key.startsWith("token ")) {
         return key.substring(6);
     }
 

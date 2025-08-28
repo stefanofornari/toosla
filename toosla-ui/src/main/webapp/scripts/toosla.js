@@ -252,6 +252,7 @@ class TooslaController {
                 this.$timeout(() => this.error = "", 2500);
             });
         }
+
     }
 }
 
