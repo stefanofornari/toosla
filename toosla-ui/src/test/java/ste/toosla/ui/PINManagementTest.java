@@ -28,6 +28,9 @@ import ste.xtest.concurrent.WaitFor;
  *
  */
 public class PINManagementTest extends TooslaTestBase {
+
+    private static final int TEST_TIMEOUT = 500;
+    
     /**
      * At page load:
      * - if no pin is found in sessionStorage and no encrypted
@@ -84,7 +87,7 @@ public class PINManagementTest extends TooslaTestBase {
         });
         """, PIN));
 
-        new WaitFor(250, () -> {
+        new WaitFor(TEST_TIMEOUT, () -> {
             return PIN.equals(exec("pin"));
         });
         then(exec("sessionStorage.getItem('passwd.pin')")).isEqualTo("");
@@ -124,7 +127,7 @@ public class PINManagementTest extends TooslaTestBase {
         exec("Metro.getPlugin('#insert-pin-dialog input', 'keypad').val('1234')");
         click("#insert-pin-dialog .btn-confirm");
         then(visible("#insert-pin-dialog")).isTrue();
-        new WaitFor(250, () ->
+        new WaitFor(TEST_TIMEOUT, () ->
             "Insert PIN  - Incorrect PIN, try again". equals(text("#insert-pin-dialog .dialog-title"))
         );
 

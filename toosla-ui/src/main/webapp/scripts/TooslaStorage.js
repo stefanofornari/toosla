@@ -43,7 +43,8 @@ export class TooslaStorage {
 
     #passwd = null;
     account = null;
-    apiKey = null;
+    validationKey = null;
+    accessKey = null;
     linkStatus = "unlinked";
     changeStatus = "clean";
     lastModified = null;
@@ -54,7 +55,10 @@ export class TooslaStorage {
     }
 
     async credentials() {
-        return await this.#passwd.loadSecret(this.#passwd.pin, "storage.credentials");
+        if (this.#passwd.pin) {
+            return await this.#passwd.loadSecret(this.#passwd.pin, "storage.credentials");
+        }
+        throw "PIN not set, unable to retrieve valid credentials";
     }
 
     async login() {
@@ -76,7 +80,8 @@ export class TooslaStorage {
             if (response.ok) {
                 const body = await response.json();
                 this.account = body.account;
-                this.apiKey = body.validationkey;
+                this.validationKey = body.validationKey;
+                this.accessKey = body.accessKey;
                 this.linkStatus = LINK_STATUS_LINKED;
                 console.info(`TooslaStorage connected with account ${this.account}`);
             } else {
@@ -88,13 +93,18 @@ export class TooslaStorage {
                 //
                 if (response.status === 401) {
                     this.account = null;
-                    this.apiKey = null;
+                    this.validationKey = null;
+                    this.accessKey = null;
                     this.linkStatus = LINK_STATUS_UNLINKED;
                     console.info(`TooslaStorage unable to link the remote storage: the provided credentials are not authorized`);
                 }
                 return;
             }
         } catch (e) {
+            this.account = null;
+            this.validationKey = null;
+            this.accessKey = null;
+            this.linkStatus = LINK_STATUS_UNLINKED;
             console.info("[TooslaStorage]", "login failed due to a network or unexpected error, working offline");
             console.error(e);
             console.error(e.stack);
@@ -116,7 +126,7 @@ export class TooslaStorage {
 
         try {
             const headers = {
-                "Authorization": `token ${this.apiKey}`
+                "Authorization": `Bearer ${this.validationKey}`
             };
 
             if (this.lastModified) {
@@ -186,7 +196,7 @@ export class TooslaStorage {
         try {
             const headers = {
                 "Content-Type": "application/json",
-                "authorization":  `token ${this.apiKey}`
+                "authorization":  `Bearer ${this.validationKey}`
             };
 
             if (this.lastModified) {
