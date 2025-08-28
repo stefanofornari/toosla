@@ -6,16 +6,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.0</version>
-        <relativePath/>
+        <groupId>ste.toosla</groupId>
+        <artifactId>toosla</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <groupId>ste.toosla</groupId>
     <artifactId>toosla-api</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
+    <version>0.0.0-SNAPSHOT</version>
+    <packaging>war</packaging>
 
     <properties>
         <java.version>17</java.version>
@@ -33,6 +32,22 @@
                     <artifactId>spring-boot-starter-logging</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Provided by servlet container -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Toosla UI as a WAR overlay -->
+        <dependency>
+            <groupId>ste.toosla</groupId>
+            <artifactId>toosla-ui</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Add Spring Boot Starter for Java Util Logging -->
@@ -123,12 +138,44 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <requiresUnpack>
-                        <dependency>
+                    <executable>true</executable>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <customClasspathLayout>
+                                ./lib
+                            </customClasspathLayout>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <webResources>
+                        <resource>
+                            <directory>${project.basedir}/src/main/webapp</directory>
+                            <includes>
+                                <include>**/*.*</include>
+                            </includes>
+                        </resource>
+                    </webResources>
+                    <overlays>
+                        <overlay>
                             <groupId>ste.toosla</groupId>
-                            <artifactId>toosla-api</artifactId>
-                        </dependency>
-                    </requiresUnpack>
+                            <artifactId>toosla-ui</artifactId>
+                        </overlay>
+                    </overlays>
                 </configuration>
             </plugin>
             <plugin>

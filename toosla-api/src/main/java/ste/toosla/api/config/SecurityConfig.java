@@ -54,6 +54,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/storage/write").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
+                // Allow access to static resources and the root page
+                .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**", "/modules/**", "/angularjs/**", "/metroui/**", "/scripts/**", "/tasktimer/**").permitAll()
                 .anyRequest().authenticated()
             )
 
