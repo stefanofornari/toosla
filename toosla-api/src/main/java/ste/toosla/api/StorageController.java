@@ -30,6 +30,7 @@ import ste.toosla.api.KeyManager.KeyEntry;
 import ste.toosla.api.dto.ErrorResponse;
 import ste.toosla.api.dto.LoginRequest;
 import ste.toosla.api.dto.ReadRequest;
+import ste.toosla.api.dto.WriteRequest;
 import ste.toosla.zefiro.ZefiroClient;
 import ste.toosla.zefiro.ZefiroException;
 import ste.toosla.zefiro.ZefiroFileNotFoundException;
@@ -105,18 +106,13 @@ public class StorageController {
 
             ZefiroLoginResponse zefiroResponse = zefiroClient.login();
 
-            ObjectNode apiResponse = objectMapper.createObjectNode();
-
             final String validationKey = zefiroResponse.key();
 
             final String accessKey = keyManager.newKey(account, secret, validationKey);
 
-            apiResponse.put("account", zefiroResponse.account());
-            apiResponse.put("key", accessKey);
-
             LOG.info(() -> "Login successful for account '" + account + "'");
 
-            return ResponseEntity.ok().body(apiResponse);
+            return ResponseEntity.ok().body(new ZefiroLoginResponse(zefiroResponse.account(), accessKey));
         } catch (ZefiroLoginException x) {
             error[0] = ResponseEntity.status(401).body(
                 new ErrorResponse("Zefiro authentication failed", x.getMessage())
@@ -145,6 +141,9 @@ public class StorageController {
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(type = "string"))),
                    @ApiResponse(responseCode = "304", description = "Not Modified"),
+                   @ApiResponse(responseCode = "401", description = "Unauthorized",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class))),
                    @ApiResponse(responseCode = "404", description = "File not found",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
@@ -201,6 +200,9 @@ public class StorageController {
                description = "Writes the content of a file to the remote storage. The `If-Unmodified-Since` header can be used to prevent overwriting a more recent version of the file.",
                responses = {
                    @ApiResponse(responseCode = "200", description = "File written successfully"),
+                   @ApiResponse(responseCode = "401", description = "Unauthorized",
+                                content = @Content(mediaType = "application/json",
+                                                   schema = @Schema(implementation = ErrorResponse.class))),
                    @ApiResponse(responseCode = "404", description = "File not found",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
@@ -213,8 +215,8 @@ public class StorageController {
                })
     public ResponseEntity<?> write(
             @Parameter(description = "Path and content of the file to write.", required = true,
-                       schema = @Schema(implementation = ste.toosla.api.dto.WriteRequest.class))
-            @Valid @RequestBody ste.toosla.api.dto.WriteRequest writeRequest,
+                       schema = @Schema(implementation = WriteRequest.class))
+            @Valid @RequestBody WriteRequest writeRequest,
             @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
             @RequestHeader(name = "If-Unmodified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
