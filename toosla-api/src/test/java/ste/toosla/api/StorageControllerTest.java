@@ -123,7 +123,6 @@ public class StorageControllerTest {
         storageControllerLogger.removeHandler(logHandler);
     }
 
-    @Test
     public void login_successful() throws Exception {
         // Given
         httpClientBuilder.withStub(
@@ -140,7 +139,8 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:password1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("user1"))
-                .andExpect(jsonPath("$.key").exists());
+                .andExpect(jsonPath("$.accessKey").exists())
+                .andExpect(jsonPath("$.validationKey").value("test_key"));
 
         // Test with user1: (empty password)
         mockMvc.perform(post("/api/storage/login")
@@ -148,7 +148,8 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1:\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("user1"))
-                .andExpect(jsonPath("$.key").exists());
+                .andExpect(jsonPath("$.accessKey").exists())
+                .andExpect(jsonPath("$.validationKey").value("test_key"));
 
         // Test with user1 (still empty password)
         mockMvc.perform(post("/api/storage/login")
@@ -156,7 +157,8 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"user1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("user1"))
-                .andExpect(jsonPath("$.key").exists());
+                .andExpect(jsonPath("$.accessKey").exists())
+                .andExpect(jsonPath("$.validationKey").value("test_key"));
     }
 
     @Test
@@ -186,7 +188,6 @@ public class StorageControllerTest {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
-    @Test
     public void login_with_various_credentials() throws Exception {
         // Given
         httpClientBuilder.withStub(
@@ -203,7 +204,8 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\":user1password1\"}")) // Credentials without ':'
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value(""))
-                .andExpect(jsonPath("$.key").exists());
+                .andExpect(jsonPath("$.accessKey").exists())
+                .andExpect(jsonPath("$.validationKey").value("test_key"));
 
         httpClientBuilder.stubs().clear();
         httpClientBuilder.withStub(
@@ -218,7 +220,8 @@ public class StorageControllerTest {
                 .content("{\"credentials\":\"    :pwd\"}")) // blank account
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.account").value("    "))
-                .andExpect(jsonPath("$.key").exists());
+                .andExpect(jsonPath("$.accessKey").exists())
+                .andExpect(jsonPath("$.validationKey").value("test_key"));
     }
 
     @Test

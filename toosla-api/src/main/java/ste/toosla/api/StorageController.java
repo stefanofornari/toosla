@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ste.toosla.api.KeyManager.KeyEntry;
 import ste.toosla.api.dto.ErrorResponse;
 import ste.toosla.api.dto.LoginRequest;
+import ste.toosla.api.dto.LoginResponse;
 import ste.toosla.api.dto.ReadRequest;
 import ste.toosla.api.dto.WriteRequest;
 import ste.toosla.zefiro.ZefiroClient;
@@ -71,7 +72,7 @@ public class StorageController {
                responses = {
                    @ApiResponse(responseCode = "200", description = "Login successful",
                                 content = @Content(mediaType = "application/json",
-                                                   schema = @Schema(implementation = ZefiroLoginResponse.class))),
+                                                   schema = @Schema(implementation = LoginResponse.class))),
                    @ApiResponse(responseCode = "401", description = "Invalid credentials",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
@@ -112,7 +113,7 @@ public class StorageController {
 
             LOG.info(() -> "Login successful for account '" + account + "'");
 
-            return ResponseEntity.ok().body(new ZefiroLoginResponse(zefiroResponse.account(), accessKey));
+            return ResponseEntity.ok().body(new LoginResponse(zefiroResponse.account(), accessKey, validationKey));
         } catch (ZefiroLoginException x) {
             error[0] = ResponseEntity.status(401).body(
                 new ErrorResponse("Zefiro authentication failed", x.getMessage())
