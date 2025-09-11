@@ -123,6 +123,7 @@ public class StorageControllerTest {
         storageControllerLogger.removeHandler(logHandler);
     }
 
+    @Test
     public void login_successful() throws Exception {
         // Given
         httpClientBuilder.withStub(
@@ -415,7 +416,7 @@ public class StorageControllerTest {
             .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_MODIFICATION_DATE.toInstant()))
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .content("{\"path\": \"/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isOk())
             .andExpect(
                 header().string("Last-Modified", "Tue, 19 Aug 2025 00:00:00 GMT")
@@ -434,7 +435,7 @@ public class StorageControllerTest {
             .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\": \"/OneMediaHub/Toosla/toosla.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .content("{\"path\": \"/Toosla/toosla.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isPreconditionFailed())
             .andExpect(
                 header().string("Last-Modified", "Tue, 19 Aug 2025 00:00:00 GMT")
@@ -462,7 +463,7 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/write")
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .content("{\"path\": \"/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Error writing file"))
@@ -485,11 +486,11 @@ public class StorageControllerTest {
             .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_MODIFICATION_DATE.toInstant()))
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .content("{\"path\": \"/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isOk());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/new_file.json with If-Unmodified-Since: " + FIXED_MODIFICATION_DATE)
-                .containsINFO("File written successfully: /OneMediaHub/Toosla/new_file.json");
+                .containsINFO("Attempting to write file: /Toosla/new_file.json with If-Unmodified-Since: " + FIXED_MODIFICATION_DATE)
+                .containsINFO("File written successfully: /Toosla/new_file.json");
 
         //
         // Scenario 2: Precondition Failed
@@ -501,11 +502,11 @@ public class StorageControllerTest {
             .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\": \"/OneMediaHub/Toosla/toosla.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .content("{\"path\": \"/Toosla/toosla.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isPreconditionFailed());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/toosla.json with If-Unmodified-Since: " + FIXED_EARLIER_DATE)
-                .containsWARNING("Precondition Failed for file: /OneMediaHub/Toosla/toosla.json - Modification conflict detected");
+                .containsINFO("Attempting to write file: /Toosla/toosla.json with If-Unmodified-Since: " + FIXED_EARLIER_DATE)
+                .containsWARNING("Precondition Failed for file: /Toosla/toosla.json - Modification conflict detected");
 
         //
         // Scenario 3: File not found
@@ -522,11 +523,11 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/write")
                 .header("Authorization", "Bearer " + accessKey)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+                .content("{\"path\": \"/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
                 .andExpect(status().isNotFound());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/new_file.json with If-Unmodified-Since: null")
-                .containsWARNING("File not found: /OneMediaHub/Toosla/new_file.json");
+                .containsINFO("Attempting to write file: /Toosla/new_file.json with If-Unmodified-Since: null")
+                .containsWARNING("File not found: /Toosla/new_file.json");
 
         //
         // Scenario 4: Generic Zefiro error
@@ -542,11 +543,11 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/write")
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\": \"/OneMediaHub/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
+            .content("{\"path\": \"/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isInternalServerError());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to write file: /OneMediaHub/Toosla/new_file.json with If-Unmodified-Since: null")
-                .containsSEVERE("Error writing file: /OneMediaHub/Toosla/new_file.json");
+                .containsINFO("Attempting to write file: /Toosla/new_file.json with If-Unmodified-Since: null")
+                .containsSEVERE("Error writing file: /Toosla/new_file.json");
     }
 
     @Test
@@ -584,11 +585,11 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/read")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + accessKey)
-                .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
+                .content("{\"path\":\"/Toosla/not_found.json\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("File not found"))
-                .andExpect(jsonPath("$.details").value("File not found: /OneMediaHub/Toosla/not_found.json"));
+                .andExpect(jsonPath("$.details").value("File not found: /Toosla/not_found.json"));
     }
 
     @Test
@@ -602,11 +603,11 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/read")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + accessKey)
-                .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
+                .content("{\"path\":\"/Toosla/not_found.json\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("File not found"))
-                .andExpect(jsonPath("$.details").value("File not found: /OneMediaHub/Toosla/not_found.json"));
+                .andExpect(jsonPath("$.details").value("File not found: /Toosla/not_found.json"));
     }
 
     @Test
@@ -617,7 +618,7 @@ public class StorageControllerTest {
         // When & Then
         mockMvc.perform(post("/api/storage/read")
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+            .content("{\"path\":\"/Toosla/toosla.json\"}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Unauthorized"))
@@ -627,7 +628,7 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/read")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer invalid access key")
-            .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+            .content("{\"path\":\"/Toosla/toosla.json\"}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Unauthorized"))
@@ -645,7 +646,7 @@ public class StorageControllerTest {
                 .header("Authorization", "Bearer " + accessKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_LATER_DATE.toInstant()))
-                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .content("{\"path\":\"/Toosla/toosla.json\"}"))
                 .andExpect(status().isNotModified());
     }
 
@@ -660,7 +661,7 @@ public class StorageControllerTest {
                 .header("Authorization", "Bearer " + accessKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
-                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .content("{\"path\":\"/Toosla/toosla.json\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string("{\"content\":\"this is toosla\"}"));
@@ -674,14 +675,14 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/read")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + accessKey)
-                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .content("{\"path\":\"/Toosla/toosla.json\"}"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Error reading file"))
                 .andExpect(jsonPath("$.details").value("Error connecting to Zefiro"));
 
         LogAssertions.then(logHandler.getRecords())
-                .containsSEVERE("Error reading file: /OneMediaHub/Toosla/toosla.json");
+                .containsSEVERE("Error reading file: /Toosla/toosla.json");
     }
 
     @Test
@@ -694,11 +695,11 @@ public class StorageControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_EARLIER_DATE.toInstant()))
                 .header("Authorization", "Bearer " + accessKey)
-                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .content("{\"path\":\"/Toosla/toosla.json\"}"))
                 .andExpect(status().isOk());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/toosla.json if modified since " + FIXED_EARLIER_DATE)
-                .containsINFO("File read successfully: /OneMediaHub/Toosla/toosla.json");
+                .containsINFO("Attempting to read file: /Toosla/toosla.json if modified since " + FIXED_EARLIER_DATE)
+                .containsINFO("File read successfully: /Toosla/toosla.json");
         //
         // Scenario 2: File not modified
         //
@@ -708,11 +709,11 @@ public class StorageControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("If-Modified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_LATER_DATE.toInstant()))
                 .header("Authorization", "Bearer " + accessKey)
-                .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+                .content("{\"path\":\"/Toosla/toosla.json\"}"))
                 .andExpect(status().isNotModified());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/toosla.json if modified since " + FIXED_LATER_DATE)
-                .containsINFO("File not modified: /OneMediaHub/Toosla/toosla.json");
+                .containsINFO("Attempting to read file: /Toosla/toosla.json if modified since " + FIXED_LATER_DATE)
+                .containsINFO("File not modified: /Toosla/toosla.json");
 
         //
         // Scenario 3: File not found
@@ -728,11 +729,11 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/read")
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\":\"/OneMediaHub/Toosla/not_found.json\"}"))
+            .content("{\"path\":\"/Toosla/not_found.json\"}"))
             .andExpect(status().isNotFound());
         LogAssertions.then(logHandler.getRecords())
-            .containsINFO("Attempting to read file: /OneMediaHub/Toosla/not_found.json if modified since null")
-            .containsWARNING("File not found: /OneMediaHub/Toosla/not_found.json");
+            .containsINFO("Attempting to read file: /Toosla/not_found.json if modified since null")
+            .containsWARNING("File not found: /Toosla/not_found.json");
         logHandler.getRecords().clear(); // Clear logs for next scenario
 
         //
@@ -749,11 +750,11 @@ public class StorageControllerTest {
         mockMvc.perform(post("/api/storage/read")
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"path\":\"/OneMediaHub/Toosla/toosla.json\"}"))
+            .content("{\"path\":\"/Toosla/toosla.json\"}"))
             .andExpect(status().isInternalServerError());
         LogAssertions.then(logHandler.getRecords())
-                .containsINFO("Attempting to read file: /OneMediaHub/Toosla/toosla.json if modified since null")
-                .containsSEVERE("Error reading file: /OneMediaHub/Toosla/toosla.json");
+                .containsINFO("Attempting to read file: /Toosla/toosla.json if modified since null")
+                .containsSEVERE("Error reading file: /Toosla/toosla.json");
     }
 
 }
