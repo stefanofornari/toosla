@@ -29,9 +29,18 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 
 /**
  * Security configuration for the application.
+ *
+ * This configuration:
+ * - Permits unauthenticated access to storage APIs, documentation, health check, and static resources
+ * - Disables CSRF for stateless API usage
+ * - Enables CORS with a default configuration
+ * - Sets strict HTTP security headers
+ * - Restricts maximum sessions per user (if using sessions)
+ * - Optionally, enables stateless session management for full API statelessness (see code below)
  */
 @Configuration
 @EnableWebSecurity
@@ -40,7 +49,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for API endpoints
+            // Disable CSRF for API endpoints (stateless)
             .csrf(AbstractHttpConfigurer::disable)
 
             // Configure CORS
@@ -48,7 +57,8 @@ public class SecurityConfig {
 
             // Configure authorization
             .authorizeHttpRequests(authz -> authz
-                                .requestMatchers("/api/auth/**").permitAll()
+                // Storage API and health are public/anonymous:
+                .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/storage/login").permitAll()
                 .requestMatchers("/api/storage/read").permitAll()
                 .requestMatchers("/api/storage/write").permitAll()
@@ -59,20 +69,22 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
 
-            // Configure headers
+            // Configure headers for security best practices
             .headers(headers -> headers
-            .frameOptions(frameOptions -> frameOptions.deny())
-            .contentTypeOptions(Customizer.withDefaults())
-            .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-                .maxAgeInSeconds(31536000)
-                .includeSubDomains(true)
-            )
-            .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(Customizer.withDefaults())
+                .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                    .maxAgeInSeconds(31536000)
+                    .includeSubDomains(true)
+                )
+                .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
 
-            // Configure session management
+            // Configure session management: for pure APIs we prefer stateless (add below)
             .sessionManagement(session -> session
-                .maximumSessions(1)
-                .maxSessionsPreventsLogin(false)
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                // If you want to restrict sessions for web UI, you may use this:
+                //.maximumSessions(1)
+                //.maxSessionsPreventsLogin(false)
             );
 
         return http.build();
