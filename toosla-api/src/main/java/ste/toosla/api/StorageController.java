@@ -1,7 +1,6 @@
 package ste.toosla.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -231,7 +230,6 @@ public class StorageController {
                 new ZefiroClient(keyEntry.account(), keyEntry.secret())
                 .withHttpClientBuilder(httpClientBuilder)
                 .withValidationKey(keyEntry.validationKey());
-
 
             zefiroClient.upload(writeRequest.path(), writeRequest.content(), ifUnmodifiedSince);
             LOG.info(() -> "File written successfully: " + writeRequest.path());
