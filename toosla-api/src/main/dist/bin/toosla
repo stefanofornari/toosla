@@ -41,6 +41,7 @@ cd "$home"
 # Java settings
 #
 JAVA_OPTS="$JAVA_OPTS -Xmx12G -Djava.util.logging.config.file="$logging_config_file""
+#JAVA_OPTS="$JAVA_OPTS -Djdk.httpclient.HttpClient.log=all"
 #JAVA_MOD_DEBUG_OPTS="--show-module-resolution --validate-modules"
 
 #
