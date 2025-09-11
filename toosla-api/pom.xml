@@ -115,14 +115,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Awaitility -->
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>4.2.0</version>
-            <scope>test</scope>
-        </dependency>
-
         <!-- XTest -->
         <dependency>
             <groupId>com.github.stefanofornari</groupId>
