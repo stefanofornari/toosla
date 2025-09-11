@@ -9,6 +9,9 @@ import static org.assertj.core.api.BDDAssertions.then;
 import static org.assertj.core.api.BDDAssertions.thenThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import ste.xtest.net.http.HttpClientStubber;
 import ste.xtest.net.http.StubHttpClient.StubHttpResponse;
 import ste.xtest.net.http.ANDMatcher;
@@ -53,7 +56,6 @@ public class ZefiroClientTest {
 
     @Test
     public void login_successful() throws Exception {
-
         ZefiroClient zefiro =
             new ZefiroClient("test_user", "test_password").withHttpClientBuilder(httpClientBuilder);
 
@@ -63,6 +65,53 @@ public class ZefiroClientTest {
         // Then
         then(response.account()).isEqualTo("test_user");
         then(response.key()).isEqualTo("test_validation_key");
+    }
+
+    @Test
+    public void can_override_api_url_for_login() throws Exception {
+        // Given
+        final String testUrl = "https://my-test-host.com";
+        httpClientBuilder.stubs().clear(); // Remove default stubs
+        httpClientBuilder.withStub(
+            testUrl + "/sapi/login?action=login",
+            new StubHttpResponse<String>().text("{\"data\":{\"validationkey\":\"a_different_key\"}}")
+        );
+
+        ZefiroClient zefiro = new ZefiroClient("test_user", "test_password")
+            .withHttpClientBuilder(httpClientBuilder)
+            .withApiUrl(testUrl);
+
+        // When
+        ZefiroLoginResponse response = zefiro.login();
+
+        // Then
+        then(response.key()).isEqualTo("a_different_key");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = { " ", "   ", "\t", "\n"})
+    public void withApiUrl_should_throw_exception_for_invalid_url(String invalidUrl) {
+        // Given
+        ZefiroClient zefiro = new ZefiroClient("user", "pass");
+
+        // When & Then
+        thenThrownBy(() -> zefiro.withApiUrl(invalidUrl))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("apiUrl can not be null or empty");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = { " ", "   ", "\t" })
+    public void withUploadUrl_should_throw_exception_for_invalid_url(String invalidUrl) {
+        // Given
+        ZefiroClient zefiro = new ZefiroClient("user", "pass");
+
+        // When & Then
+        thenThrownBy(() -> zefiro.withUploadUrl(invalidUrl))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("uploadUrl can not be null or empty");
     }
 
     @Test
@@ -146,7 +195,7 @@ public class ZefiroClientTest {
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
         );
 
-        String path = "/OneMediaHub/Toosla/new_file.json";
+        String path = "/Toosla/new_file.json";
         String content = "{\"key\":\"value\"}";
 
         // When
@@ -163,7 +212,7 @@ public class ZefiroClientTest {
             new ZefiroClient("test_user", "test_password")
             .withHttpClientBuilder(httpClientBuilder)
             .withValidationKey(TEST_VALIDATION_KEY);
-        String path = "/OneMediaHub/Toosla/toosla.json";
+        String path = "/Toosla/toosla.json";
         String content = "{\"key\":\"new_value\"}";
 
         // Stub Zefiro responses:
@@ -183,7 +232,7 @@ public class ZefiroClientTest {
     public void upload_if_file_is_not_more_recent_than_if_unmodified_since() throws Exception {
         // Given
         ZefiroClient zefiro = newZefiroClient();
-        String path = "/OneMediaHub/Toosla/toosla.json";
+        String path = "/Toosla/toosla.json";
         String content = "{\"key\":\"updated_value\"}";
 
         // Stub Zefiro responses:
@@ -191,18 +240,8 @@ public class ZefiroClientTest {
         // The creationDate passed to setUpFileStubs will be the "current" modification date on Zefiro.
         setUpFileStubs(httpClientBuilder).withStub(new ANDMatcher(
                 new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
-                new BodyMatcher(Pattern.compile(
-                    "\\A(------WebKitFormBoundary\\d+)\\r\\n" +
-                    "Content-Disposition: form-data; name=\"data\"\\r\\n" +
-                    "Content-Type: application/json\\r\\n" +
-                    "\\r\\n" +
-                    Pattern.quote("{\"data\":{\"name\":\"toosla.json\",\"size\":23,\"modificationdate\":1767225600000,\"contenttype\":\"application/json\",\"folderid\":12345,\"id\":11111}}") + "\\r\\n" +
-                    "\\1\\r\\n" +
-                    "Content-Disposition: form-data; name=\"file\"; filename=\"toosla\\.json\"\\r\\n" +
-                    "Content-Type: application/json\\r\\n" +
-                    "\\r\\n" +
-                    Pattern.quote("{\"key\":\"updated_value\"}") + "\\r\\n" +
-                    "\\1--\\r\\n\\z")
+                new BodyMatcher(
+                    Pattern.compile("--------zfrclient\\d+.*" + Pattern.quote(content) + ".*", Pattern.DOTALL)
                 ),
                 new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
@@ -221,28 +260,13 @@ public class ZefiroClientTest {
         // Given
         ZefiroClient zefiro = zefiro = newZefiroClient();
 
-        final String path = "/OneMediaHub/Toosla/new_file.json";
+        final String path = "/Toosla/new_file.json";
         final String content = "{\"key\":\"new_value\"}";
 
-        final String body =
-            "\\A(------WebKitFormBoundary\\d+)\\r\\n" +
-            "Content-Disposition: form-data; name=\"data\"\\r\\n" +
-            "Content-Type: application/json\\r\\n" +
-            "\\r\\n" +
-            Pattern.quote("{\"data\":{\"name\":\"new_file.json\",\"size\":19,\"modificationdate\":" + FIXED_LATER_DATE.getTime() + ",\"contenttype\":\"application/json\",\"folderid\":12345}}") + "\\r\\n" +
-            "\\1\\r\\n" +
-            "Content-Disposition: form-data; name=\"file\"; filename=\"new_file\\.json\"\\r\\n" +
-            "Content-Type: application/json\\r\\n" +
-            "\\r\\n" +
-            Pattern.quote(content) + "\\r\\n" +
-            "\\1--\\r\\n\\z";
-
-        setUpFileStubs(httpClientBuilder).withStub(// this does not contain /OneMediaHub/Toosla/new_file.json
+        setUpFileStubs(httpClientBuilder).withStub(// this does not contain /Toosla/new_file.json
             new ANDMatcher(
                 new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
-                new BodyMatcher(Pattern.compile(
-                    body
-                ))
+                new BodyMatcher(Pattern.compile("--------zfrclient\\d+.*" + Pattern.quote(content) + ".*", Pattern.DOTALL))
             ),
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"67890\"}")
         );
@@ -252,6 +276,30 @@ public class ZefiroClientTest {
 
         // Then
         then(fileId).isEqualTo("67890");
+    }
+
+    @Test
+    public void can_override_upload_url() throws Exception {
+        // Given
+        final String testUploadUrl = "https://my-test-upload.com";
+
+        // Client uses default apiUrl but a custom uploadUrl
+        ZefiroClient zefiro = newZefiroClient()
+            .withUploadUrl(testUploadUrl);
+
+        // Use existing stubs for helpers, which point to the default API URL
+        setUpTreeStubs(httpClientBuilder);
+        // Add a new stub for our custom upload URL
+        httpClientBuilder.withStub(
+            new URIMatcher(testUploadUrl + "/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
+            new StubHttpResponse<String>().text("{\"id\":\"a_different_id\"}")
+        );
+
+        // When
+        String uploadedFileId = zefiro.upload("/Toosla/new_file.json", "{\"key\":\"value\"}");
+
+        // Then
+        then(uploadedFileId).isEqualTo("a_different_id");
     }
 
     //
@@ -264,7 +312,7 @@ public class ZefiroClientTest {
         setUpFileStubs(httpClientBuilder);
 
         then(
-            zefiro.download("/OneMediaHub/Toosla/toosla.json")
+            zefiro.download("/Toosla/toosla.json")
         ).isEqualTo("{\"content\":\"this is toosla\"}");
     }
 
@@ -277,7 +325,7 @@ public class ZefiroClientTest {
         );
 
         // When & Then
-        thenThrownBy(() -> zefiro.download("/OneMediaHub/Toosla/toosla.json"))
+        thenThrownBy(() -> zefiro.download("/Toosla/toosla.json"))
                 .isInstanceOf(ZefiroException.class)
                 .hasMessage("Error connecting to Zefiro");
     }
@@ -294,7 +342,7 @@ public class ZefiroClientTest {
         );
 
         // When & Then
-        thenThrownBy(() -> zefiro.download("/OneMediaHub/Toosla/toosla.json"))
+        thenThrownBy(() -> zefiro.download("/Toosla/toosla.json"))
             .isInstanceOf(ZefiroException.class)
             .hasMessage("Invalid JSON response from Zefiro");
     }
@@ -314,9 +362,9 @@ public class ZefiroClientTest {
         );
 
         // When & Then
-        thenThrownBy(() -> zefiro.download("/OneMediaHub/Toosla/not_found.json"))
+        thenThrownBy(() -> zefiro.download("/Toosla/not_found.json"))
             .isInstanceOf(ZefiroFileNotFoundException.class)
-            .hasMessage("File not found: /OneMediaHub/Toosla/not_found.json");
+            .hasMessage("File not found: /Toosla/not_found.json");
     }
 
     @Test
@@ -339,9 +387,9 @@ public class ZefiroClientTest {
         );
 
         // When & Then
-        thenThrownBy(() -> zefiro.download("/OneMediaHub/NonExistentSubdir/file.json"))
+        thenThrownBy(() -> zefiro.download("/NonExistentSubdir/file.json"))
             .isInstanceOf(ZefiroFileNotFoundException.class)
-            .hasMessage("File not found: /OneMediaHub/NonExistentSubdir/file.json");
+            .hasMessage("File not found: /NonExistentSubdir/file.json");
     }
 
     @Test
@@ -354,7 +402,7 @@ public class ZefiroClientTest {
         setUpFileStubs(httpClientBuilder);
 
         // When
-        Optional<String> content = zefiro.download("/OneMediaHub/Toosla/toosla.json", FIXED_EARLIER_DATE);
+        Optional<String> content = zefiro.download("/Toosla/toosla.json", FIXED_EARLIER_DATE);
 
         // Then
         then(content).isPresent().contains("{\"content\":\"this is toosla\"}");
@@ -370,7 +418,7 @@ public class ZefiroClientTest {
         setUpFileStubs(httpClientBuilder);
 
         // When
-        Optional<String> content = zefiro.download("/OneMediaHub/Toosla/toosla.json", FIXED_LATER_DATE);
+        Optional<String> content = zefiro.download("/Toosla/toosla.json", FIXED_LATER_DATE);
 
         // Then
         then(content).isNotPresent();
@@ -393,7 +441,7 @@ public class ZefiroClientTest {
         );
 
         // When
-        zefiro.download("/OneMediaHub/Toosla/toosla.json");
+        zefiro.download("/Toosla/toosla.json");
 
         // Then
         // The test passes if the stub is matched, which means the Authorization header was sent.

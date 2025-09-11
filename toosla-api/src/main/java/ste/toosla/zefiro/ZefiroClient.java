@@ -21,6 +21,8 @@ import java.util.Optional;
 public class ZefiroClient {
 
     private HttpClient.Builder httpClientBuilder;
+    private String apiUrl = "https://zefiro.me";
+    private String uploadUrl = "https://upload.zefiro.me";
     private final ObjectMapper jsonMapper = new ObjectMapper();
     private final String username;
     private final String password;
@@ -44,6 +46,20 @@ public class ZefiroClient {
         this.validationKey = validationKey; return this;
     }
 
+    public ZefiroClient withApiUrl(final String apiUrl) {
+        if (apiUrl == null || apiUrl.isBlank()) {
+            throw new IllegalArgumentException("apiUrl can not be null or empty");
+        }
+        this.apiUrl = apiUrl; return this;
+    }
+
+    public ZefiroClient withUploadUrl(final String uploadUrl) {
+        if (uploadUrl == null || uploadUrl.isBlank()) {
+            throw new IllegalArgumentException("uploadUrl can not be null or empty");
+        }
+        this.uploadUrl = uploadUrl; return this;
+    }
+
     public String validationKey() {
         return validationKey;
     }
@@ -62,7 +78,7 @@ public class ZefiroClient {
                                        "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8);
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://zefiro.me/sapi/login?action=login"))
+                    .uri(URI.create(apiUrl + "/sapi/login?action=login"))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .header("Origin", "https://zefiro.me")
                     .POST(HttpRequest.BodyPublishers.ofString(zefiroRequestBody))
@@ -108,7 +124,13 @@ public class ZefiroClient {
      * Uploads a file to the Zefiro service.
      * This simplified implementation assumes the folder structure exists and uses a hardcoded folder ID.
      *
-     * @param path the full path to the file (e.g., "/OneMediaHub/Toosla/new_file.json")
+     * Note that files in Zefiro must be under /OneMediaHub, which is specific
+     * to this backend. Therefore, /OneMediaHub will be transparently prepended
+     * to the provided path to build the real path. For example, if the client
+     * writes the file /Toosla/toosla.json, this method writes into Zefiro's
+     * file /OneMediaHub/Toosla/toosla.json
+     *
+     * @param path the absolute file path (e.g. "/Toosla/new_file.json")
      * @param content the content of the file as a String
      * @param ifUnmodifiedSince a {@link Date} object representing the timestamp to check against.
      *                          If the file on Zefiro has been modified more recently than this timestamp, a ZefiroException
@@ -116,14 +138,16 @@ public class ZefiroClient {
      * @return the ID of the uploaded file
      * @throws ZefiroException if an error occurs during the upload process or if the precondition fails
      */
-    public String upload(String path, String content, Date ifUnmodifiedSince) throws ZefiroException {
+    public String upload(String path, String content, Date ifUnmodifiedSince)
+    throws ZefiroException {
+        path = "/OneMediaHub" + path;
         try {
             final HttpClient httpClient = httpClientBuilder.build();
             // Extract fileName from path
-            String[] pathParts = path.substring(1).split("/");
-            String fileName = pathParts[pathParts.length - 1];
+            final String[] pathParts = path.substring(1).split("/");
+            final String fileName = pathParts[pathParts.length - 1];
 
-            // Hardcoded folderId for now, as per simplified requirement
+
             long folderId = findFolderId(httpClient, pathParts);
             long fileId = 0;
 
@@ -143,39 +167,15 @@ public class ZefiroClient {
                 ifUnmodifiedSince = new Date();
             }
 
-            // Construct multipart body
-            String boundary = "------WebKitFormBoundary" + System.currentTimeMillis();
-            String contentType = "multipart/form-data; boundary=" + boundary;
-
-            StringBuilder bodyBuilder = new StringBuilder();
-
-            // Part 1: data field (metadata)
-            bodyBuilder.append(boundary).append("\r\n");
-            bodyBuilder.append("Content-Disposition: form-data; name=\"data\"").append("\r\n");
-            bodyBuilder.append("Content-Type: application/json").append("\r\n\r\n");
-
-            StringBuilder jsonData = new StringBuilder();
-            jsonData.append("{\"data\":{\"name\":\"").append(fileName).append("\",\"size\":").append(content.length()).append(",\"modificationdate\":").append(ifUnmodifiedSince.getTime()).append(",\"contenttype\":\"application/json\",\"folderid\":").append(folderId);
-            if (fileId > 0) {
-                jsonData.append(",\"id\":").append(fileId);
-            }
-            jsonData.append("}}");
-
-            bodyBuilder.append(jsonData.toString()).append("\r\n");
-
-            // Part 2: file field (content)
-            bodyBuilder.append(boundary).append("\r\n");
-            bodyBuilder.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName).append("\"").append("\r\n");
-            bodyBuilder.append("Content-Type: application/json").append("\r\n\r\n");
-            bodyBuilder.append(content).append("\r\n");
-
-            bodyBuilder.append(boundary).append("--\r\n");
+            final Multipart body = buildMultipartBody2(
+                fileName, content, folderId, fileId
+            );
 
             HttpRequest uploadRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + this.validationKey))
-                    .header("Content-Type", contentType)
+                    .uri(URI.create(uploadUrl + "/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + this.validationKey))
+                    .header("Content-Type", body.contentType())
                     .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
-                    .POST(HttpRequest.BodyPublishers.ofString(bodyBuilder.toString()))
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body.content()))
                     .build();
 
             HttpResponse<String> uploadResponse = httpClient.send(
@@ -221,6 +221,7 @@ public class ZefiroClient {
      * @throws ZefiroFileNotFoundException if the specified file or any subdirectory in the path is not found
      */
     public Optional<String> download(String path, Date ifModifiedSince) throws ZefiroException {
+        path = "/OneMediaHub" + path;
         try {
             final HttpClient httpClient = httpClientBuilder.build();
             final String[] pathParts = path.substring(1).split("/"); // Remove leading / and split
@@ -236,12 +237,12 @@ public class ZefiroClient {
             }
 
             if (fileId == 0) {
-                throw new ZefiroFileNotFoundException("File not found: " + path);
+                throw new ZefiroFileNotFoundException("File not found: " + path.substring(12)); // stripping out /OneMediaHub
             }
 
             // Get download URL
             HttpRequest downloadUrlRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + this.validationKey))
+                    .uri(URI.create(apiUrl + "/sapi/media?action=get&origin=omh,dropbox&validationkey=" + this.validationKey))
                     .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
                     .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"ids\":[" + fileId + "],\"fields\":[\"url\",\"creationdate\"]}}"))
                     .header("Content-Type", "application/json")
@@ -295,7 +296,7 @@ public class ZefiroClient {
             if (fileName.equals(file.at("/name").asText())) {
                 // Found the file, now get its metadata
                 HttpRequest metadataRequest = HttpRequest.newBuilder()
-                        .uri(URI.create("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + this.validationKey))
+                        .uri(URI.create(apiUrl + "/sapi/media?action=get&origin=omh,dropbox&validationkey=" + this.validationKey))
                         .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
                         .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"ids\":[" + file.at("/id").asLong() + "],\"fields\":[\"url\",\"creationdate\"]}}"))
                         .header("Content-Type", "application/json")
@@ -319,7 +320,7 @@ public class ZefiroClient {
 
         // Get root folder ID
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://zefiro.me/sapi/media/folder/root?action=get&validationkey=" + this.validationKey))
+                .uri(URI.create(apiUrl + "/sapi/media/folder/root?action=get&validationkey=" + this.validationKey))
                 .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
                 .GET()
                 .build();
@@ -348,7 +349,7 @@ public class ZefiroClient {
                 }
             }
             if (folderId == 0) {
-                throw new ZefiroFileNotFoundException("File not found: /" + String.join("/", pathParts));
+                throw new ZefiroFileNotFoundException("File not found: /" + String.join("/", pathParts).substring(12)); // stripping out /OneMediaHub
             }
         }
 
@@ -367,7 +368,7 @@ public class ZefiroClient {
     private String listFolders(final HttpClient httpClient, final long parentId)
     throws ZefiroException, IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://zefiro.me/sapi/media/folder?action=list&parentid=" + parentId + "&limit=200&validationkey=" + this.validationKey))
+                .uri(URI.create(apiUrl + "/sapi/media/folder?action=list&parentid=" + parentId + "&limit=200&validationkey=" + this.validationKey))
                 .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
                 .GET()
                 .build();
@@ -392,7 +393,7 @@ public class ZefiroClient {
     private String listFiles(final HttpClient httpClient, final long parentId)
     throws ZefiroException, IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://zefiro.me/sapi/media?action=get&folderid=" + parentId + "&limit=200&validationkey=" + this.validationKey))
+                .uri(URI.create(apiUrl + "/sapi/media?action=get&folderid=" + parentId + "&limit=200&validationkey=" + this.validationKey))
                 .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
                 .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"fields\":[\"name\",\"modificationdate\",\"size\",\"thumbnails\",\"videometadata\",\"audiometadata\",\"favorite\",\"shared\",\"etag\"]}}"))
                 .build();
@@ -403,5 +404,68 @@ public class ZefiroClient {
         }
 
         return response.body();
+    }
+
+    private String buildFileMetadata(
+        final String fileName,
+        final long folderId, final long fileId,
+        final long size
+    ) {
+        StringBuilder jsonData = new StringBuilder();
+        jsonData.append("{\"data\":{\"name\":\"").append(fileName).append("\"")
+            //.append(",\"creationdate\":\"20110101T012030Z\"")
+            //.append(",\"modificationdate\":\"2013-02-01 11:11:11\"")
+            .append(",\"size\":").append(size)
+            .append(",\"contenttype\":\"application/octet-stream\"")
+            .append(",\"folderid\":").append(folderId);
+        if (fileId > 0) {
+            jsonData.append(",\"id\":").append(fileId);
+        }
+        jsonData.append("}}");
+
+        return jsonData.toString();
+    }
+
+    private Multipart buildMultipartBody2(
+        final String fileName, final String content,
+        final long folderId, final long fileId
+    ) {
+        // Construct multipart/form-data body as per RFC 7578, CRLF after each line
+        final String boundary = "------zfrclient" + System.currentTimeMillis();
+        final String contentType = "multipart/form-data; boundary=" + boundary;
+        final String CRLF = "\r\n";
+
+        StringBuilder bodyBuilder = new StringBuilder();
+
+        // Part 1: data
+        bodyBuilder.append("--").append(boundary).append(CRLF);
+        bodyBuilder.append("Content-Disposition: form-data; name=\"data\"").append(CRLF);
+        bodyBuilder.append("Content-Type: application/json").append(CRLF).append(CRLF);
+        bodyBuilder.append(buildFileMetadata(
+            fileName, folderId, fileId, content.length()
+        )).append(CRLF);
+
+        // Part 2: file
+        bodyBuilder.append("--").append(boundary).append(CRLF);
+        bodyBuilder.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName).append("\"").append(CRLF);
+        bodyBuilder.append("Content-Type: application/octet-stream").append(CRLF).append(CRLF);
+        bodyBuilder.append(content).append(CRLF);
+
+        // Final boundary
+        bodyBuilder.append("--").append(boundary).append("--").append(CRLF);
+
+        return new Multipart(contentType, bodyBuilder.toString().getBytes());
+    }
+
+    private record Multipart(String contentType, byte[] content) {
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder();
+
+            sb.append("ContentType: ").append(contentType).append('\n');
+            sb.append("Content:\n").append(new String(content));
+
+            return sb.toString();
+        }
     }
 }
