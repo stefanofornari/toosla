@@ -10,15 +10,26 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 /**
- * A client for the Zefiro service, providing methods to interact with the Zefiro API
- * for login, file download, and folder listing operations.
+ * A client for the Zefiro object storage service. It handles authentication and
+ * provides methods for file upload and download.
+ *
+ * <p>This client automatically prepends the {@code /OneMediaHub} base path to all
+ * file paths, as required by the Zefiro backend.
  */
 public class ZefiroClient {
+
+    public final Logger LOG = Logger.getLogger(ZefiroClient.class.getCanonicalName());
+
+    private static final DateTimeFormatter ZEFIRO_MODIFICATION_FORMAT
+        = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
 
     private HttpClient.Builder httpClientBuilder;
     private String apiUrl = "https://zefiro.me";
@@ -109,53 +120,56 @@ public class ZefiroClient {
 
     /**
      * Uploads a file to the Zefiro service.
-     * This simplified implementation assumes the folder structure exists and uses a hardcoded folder ID.
      *
-     * @param path the full path to the file (e.g., "/OneMediaHub/Toosla/new_file.json")
+     * <p>This is a convenience method that does not perform an {@code ifUnmodifiedSince} check.
+     *
+     * @param path the absolute file path within the user's space (e.g., {@code /Toosla/new_file.json})
      * @param content the content of the file as a String
-     * @return the ID of the uploaded file
+     * @return a {@link ZefiroUploadResponse} containing the ID and modification date of the uploaded file
      * @throws ZefiroException if an error occurs during the upload process
      */
-    public String upload(String path, String content) throws ZefiroException {
+    public ZefiroUploadResponse upload(String path, String content) throws ZefiroException {
         return upload(path, content, null);
     }
 
     /**
-     * Uploads a file to the Zefiro service.
-     * This simplified implementation assumes the folder structure exists and uses a hardcoded folder ID.
+     * Uploads a file to the Zefiro service, optionally checking for modifications.
      *
-     * Note that files in Zefiro must be under /OneMediaHub, which is specific
-     * to this backend. Therefore, /OneMediaHub will be transparently prepended
-     * to the provided path to build the real path. For example, if the client
-     * writes the file /Toosla/toosla.json, this method writes into Zefiro's
-     * file /OneMediaHub/Toosla/toosla.json
+     * <p>This implementation assumes the folder structure in the path already exists.
      *
-     * @param path the absolute file path (e.g. "/Toosla/new_file.json")
+     * <p>Note: Files in Zefiro are placed under {@code /OneMediaHub}. This method
+     * automatically prepends this base path to the given path. For example, a path of
+     * {@code /Toosla/toosla.json} will be uploaded to
+     * {@code /OneMediaHub/Toosla/toosla.json}.
+     *
+     * @param path the absolute file path within the user's space (e.g., {@code /Toosla/new_file.json})
      * @param content the content of the file as a String
-     * @param ifUnmodifiedSince a {@link Date} object representing the timestamp to check against.
-     *                          If the file on Zefiro has been modified more recently than this timestamp, a ZefiroException
-     *                          will be thrown. If empty, no such check is performed.
-     * @return the ID of the uploaded file
-     * @throws ZefiroException if an error occurs during the upload process or if the precondition fails
+     * @param ifUnmodifiedSince if not null, the upload will only proceed if the file on Zefiro has not been
+     *                          modified since this date. If the check fails, a {@link ZefiroModificationException}
+     *                          is thrown.
+     * @return a {@link ZefiroUploadResponse} containing the ID and modification date of the uploaded file
+     * @throws ZefiroModificationException if the {@code ifUnmodifiedSince} check fails
+     * @throws ZefiroException if a general error occurs during the upload process
      */
-    public String upload(String path, String content, Date ifUnmodifiedSince)
+    public ZefiroUploadResponse upload(String path, String content, Date ifUnmodifiedSince)
     throws ZefiroException {
         path = "/OneMediaHub" + path;
         try {
+            debug("uploading %s if unmodified since %tc", path, ifUnmodifiedSince);
+
             final HttpClient httpClient = httpClientBuilder.build();
             // Extract fileName from path
             final String[] pathParts = path.substring(1).split("/");
             final String fileName = pathParts[pathParts.length - 1];
 
-
-            long folderId = findFolderId(httpClient, pathParts);
+            final long folderId = findFolderId(httpClient, pathParts);
             long fileId = 0;
 
             // Check If-Unmodified-Since precondition
             if (ifUnmodifiedSince != null) {
                 Optional<JsonNode> existingFileMetadata = getFileMetadata(httpClient, folderId, fileName);
                 if (existingFileMetadata.isPresent()) {
-                    long creationDate = existingFileMetadata.get().at("/creationdate").asLong();
+                    long creationDate = existingFileMetadata.get().at("/modificationdate").asLong();
                     if (creationDate > ifUnmodifiedSince.getTime()) {
                         throw new ZefiroModificationException(new Date(creationDate));
                     } else {
@@ -167,9 +181,11 @@ public class ZefiroClient {
                 ifUnmodifiedSince = new Date();
             }
 
-            final Multipart body = buildMultipartBody2(
-                fileName, content, folderId, fileId
+            final Multipart body = buildMultipartBody(
+                fileName, content, folderId, fileId, ifUnmodifiedSince
             );
+
+            debug("upload body: %s");
 
             HttpRequest uploadRequest = HttpRequest.newBuilder()
                     .uri(URI.create(uploadUrl + "/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + this.validationKey))
@@ -182,18 +198,22 @@ public class ZefiroClient {
                 uploadRequest, HttpResponse.BodyHandlers.ofString()
             );
 
+            final String responseBody = uploadResponse.body();
+            debug("response body: %s");
+
             if (uploadResponse.statusCode() >= 400) {
                 throw new ZefiroException("Failed to upload file: " + uploadResponse.statusCode());
             }
 
-            JsonNode uploadJson = jsonMapper.readTree(uploadResponse.body());
+            JsonNode uploadJson = jsonMapper.readTree(responseBody);
             String uploadedFileId = uploadJson.at("/id").asText();
 
-            return uploadedFileId;
-
+            return new ZefiroUploadResponse(uploadedFileId, ifUnmodifiedSince);
         } catch (JsonParseException x) {
+            debug("json error %s", x.getMessage());
             throw new ZefiroException("Invalid JSON response from Zefiro", x);
         } catch (IOException | InterruptedException x) {
+            debug("io error %s", x.getMessage());
             throw new ZefiroException("Error connecting to Zefiro", x);
         }
     }
@@ -201,7 +221,7 @@ public class ZefiroClient {
     /**
      * Downloads a file from the Zefiro service. This method will always attempt to download the file.
      *
-     * @param path the full path to the file (e.g., "/OneMediaHub/Toosla/toosla.json")
+     * @param path the absolute file path within the user's space (e.g., {@code /Toosla/toosla.json})
      * @return the content of the file as a String
      * @throws ZefiroException if a general error occurs during the download process
      * @throws ZefiroFileNotFoundException if the specified file or any subdirectory in the path is not found
@@ -213,8 +233,8 @@ public class ZefiroClient {
     /**
      * Downloads a file from the Zefiro service, with an option to check if the file has been modified since a given date.
      *
-     * @param path the full path to the file (e.g., "/OneMediaHub/Toosla/toosla.json")
-     * @param ifModifiedSince a {@link Date} object representing the timestamp to check against. If the file's creation date
+     * @param path the absolute file path within the user's space (e.g., {@code /Toosla/toosla.json})
+     * @param ifModifiedSince a {@link Date} object representing the timestamp to check against. If the file's modification date
      *                        on Zefiro is not more recent than this date, an empty Optional is returned.
      * @return an {@link Optional} containing the file content as a String if modified, or empty if not modified.
      * @throws ZefiroException if a general error occurs during the download process
@@ -244,7 +264,7 @@ public class ZefiroClient {
             HttpRequest downloadUrlRequest = HttpRequest.newBuilder()
                     .uri(URI.create(apiUrl + "/sapi/media?action=get&origin=omh,dropbox&validationkey=" + this.validationKey))
                     .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
-                    .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"ids\":[" + fileId + "],\"fields\":[\"url\",\"creationdate\"]}}"))
+                    .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"ids\":[" + fileId + "],\"fields\":[\"url\",\"modificationdate\"]}}"))
                     .header("Content-Type", "application/json")
                     .build();
 
@@ -259,7 +279,7 @@ public class ZefiroClient {
             JsonNode downloadUrlJson = jsonMapper.readTree(downloadUrlResponse.body());
 
             if (ifModifiedSince != null) {
-                long creationDate = downloadUrlJson.at("/data/media/0/creationdate").asLong();
+                long creationDate = downloadUrlJson.at("/data/media/0/modificationdate").asLong();
                 if (creationDate <= ifModifiedSince.getTime()) {
                     return Optional.empty();
                 }
@@ -298,7 +318,7 @@ public class ZefiroClient {
                 HttpRequest metadataRequest = HttpRequest.newBuilder()
                         .uri(URI.create(apiUrl + "/sapi/media?action=get&origin=omh,dropbox&validationkey=" + this.validationKey))
                         .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((this.username + ":" + this.password).getBytes()))
-                        .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"ids\":[" + file.at("/id").asLong() + "],\"fields\":[\"url\",\"creationdate\"]}}"))
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"data\":{\"ids\":[" + file.at("/id").asLong() + "],\"fields\":[\"url\",\"modificationdate\"]}}"))
                         .header("Content-Type", "application/json")
                         .build();
                 HttpResponse<String> metadataResponse = httpClient.send(
@@ -409,12 +429,11 @@ public class ZefiroClient {
     private String buildFileMetadata(
         final String fileName,
         final long folderId, final long fileId,
-        final long size
+        final long size, final Date lastUpdate
     ) {
         StringBuilder jsonData = new StringBuilder();
         jsonData.append("{\"data\":{\"name\":\"").append(fileName).append("\"")
-            //.append(",\"creationdate\":\"20110101T012030Z\"")
-            //.append(",\"modificationdate\":\"2013-02-01 11:11:11\"")
+            .append(",\"modificationdate\":\"").append(ZEFIRO_MODIFICATION_FORMAT.format(lastUpdate.toInstant())).append("\"")
             .append(",\"size\":").append(size)
             .append(",\"contenttype\":\"application/octet-stream\"")
             .append(",\"folderid\":").append(folderId);
@@ -426,9 +445,10 @@ public class ZefiroClient {
         return jsonData.toString();
     }
 
-    private Multipart buildMultipartBody2(
+    private Multipart buildMultipartBody(
         final String fileName, final String content,
-        final long folderId, final long fileId
+        final long folderId, final long fileId,
+        final Date lastUpdate
     ) {
         // Construct multipart/form-data body as per RFC 7578, CRLF after each line
         final String boundary = "------zfrclient" + System.currentTimeMillis();
@@ -442,7 +462,7 @@ public class ZefiroClient {
         bodyBuilder.append("Content-Disposition: form-data; name=\"data\"").append(CRLF);
         bodyBuilder.append("Content-Type: application/json").append(CRLF).append(CRLF);
         bodyBuilder.append(buildFileMetadata(
-            fileName, folderId, fileId, content.length()
+            fileName, folderId, fileId, content.length(), lastUpdate
         )).append(CRLF);
 
         // Part 2: file
@@ -467,5 +487,9 @@ public class ZefiroClient {
 
             return sb.toString();
         }
+    }
+
+    private void debug(final String message, final Object... args) {
+        LOG.finest(() -> String.format(message, args));
     }
 }

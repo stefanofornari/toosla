@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.http.HttpClient;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -37,10 +36,17 @@ import ste.toosla.zefiro.ZefiroFileNotFoundException;
 import ste.toosla.zefiro.ZefiroLoginException;
 import ste.toosla.zefiro.ZefiroLoginResponse;
 import ste.toosla.zefiro.ZefiroModificationException;
+import ste.toosla.zefiro.ZefiroUploadResponse;
 
 /**
- * A controller that handles the storage-related API endpoints.
- * This controller provides endpoints for logging in, reading, and writing files to the remote storage.
+ * Controller for the remote storage API.
+ *
+ * <p>This controller exposes endpoints for client applications to authenticate, read,
+ * and write file data. It acts as a facade, translating RESTful API calls into
+ * operations on the Zefiro object storage backend.
+ *
+ * <p>Client authentication is managed via a Bearer token provided in the
+ * {@code Authorization} header for read and write operations.
  */
 @RestController
 @Tag(name = "Storage", description = "API for storing and retrieving data from the remote storage.")
@@ -65,22 +71,22 @@ public class StorageController {
         this.objectMapper = objectMapper;
     }
 
-    @PostMapping("/api/storage/login")
+        @PostMapping("/api/storage/login")
     @Operation(summary = "Login to the storage service",
-               description = "Authenticates the user with the given credentials and returns a session key.",
+               description = "Authenticates the user against the backend storage service and returns a temporary access token for subsequent API calls.",
                responses = {
-                   @ApiResponse(responseCode = "200", description = "Login successful",
+                   @ApiResponse(responseCode = "200", description = "Login successful. The response body contains the access token.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = LoginResponse.class))),
                    @ApiResponse(responseCode = "401", description = "Invalid credentials",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "500", description = "Internal server error",
+                   @ApiResponse(responseCode = "500", description = "A server-side error occurred while trying to authenticate.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class)))
                })
     public ResponseEntity<?> login(
-            @Parameter(description = "User credentials for login.", required = true,
+            @Parameter(description = "User credentials for the backend storage service.", required = true,
                        schema = @Schema(implementation = LoginRequest.class))
             @Valid @RequestBody LoginRequest loginRequest) throws Exception {
         LOG.info(() -> "Attempting login");
@@ -133,33 +139,34 @@ public class StorageController {
         return error[0];
     }
 
-    @PostMapping("/api/storage/read")
-    @Operation(summary = "Read a file from the storage",
-               description = "Reads the content of a file from the remote storage. The `If-Modified-Since` header can be used to check if the file has been modified.",
+        @PostMapping("/api/storage/read")
+    @Operation(summary = "Read a file from storage",
+               description = "Reads the content of a file from the remote storage. This endpoint supports conditional requests using the `If-Modified-Since` header to conserve bandwidth.",
                responses = {
-                   @ApiResponse(responseCode = "200", description = "File content",
+                   @ApiResponse(responseCode = "200", description = "File content returned in the response body.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(type = "string"))),
-                   @ApiResponse(responseCode = "304", description = "Not Modified"),
-                   @ApiResponse(responseCode = "401", description = "Unauthorized",
+                   @ApiResponse(responseCode = "304", description = "The file has not been modified since the date specified in the `If-Modified-Since` header."),
+                   @ApiResponse(responseCode = "401", description = "Unauthorized. The `Authorization` header is missing, invalid, or expired.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "404", description = "File not found",
+                   @ApiResponse(responseCode = "404", description = "The specified file or path does not exist.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "500", description = "Internal server error",
+                   @ApiResponse(responseCode = "500", description = "A server-side error occurred while reading the file.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class)))
                })
     public ResponseEntity<?> read(
-            @Parameter(description = "Path of the file to read.", required = true,
+            @Parameter(description = "The path of the file to read.", required = true,
                        schema = @Schema(implementation = ReadRequest.class))
             @Valid @RequestBody ReadRequest readRequest,
-            @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
+            @Parameter(description = "Standard HTTP `If-Modified-Since` header. If provided, the server returns a `304 Not Modified` status if the file has not changed since this date.", example = "Wed, 21 Oct 2015 07:28:00 GMT")
             @RequestHeader(name = "If-Modified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Date ifModifiedSince,
-            @RequestHeader(name = "Authorization", required = false) String authorizationHeader) {
+            @Parameter(description = "The Bearer token obtained from the `/login` endpoint.", required = true)
+            @RequestHeader(name = "Authorization") String authorizationHeader) {
         LOG.info(() -> "Attempting to read file: " + readRequest.path() + " if modified since " + ifModifiedSince);
 
         try {
@@ -195,33 +202,34 @@ public class StorageController {
         }
     }
 
-    @PostMapping("/api/storage/write")
-    @Operation(summary = "Write a file to the storage",
-               description = "Writes the content of a file to the remote storage. The `If-Unmodified-Since` header can be used to prevent overwriting a more recent version of the file.",
+        @PostMapping("/api/storage/write")
+    @Operation(summary = "Write a file to storage",
+               description = "Writes or overwrites a file in the remote storage. This endpoint supports optimistic locking via the `If-Unmodified-Since` header to prevent lost updates.",
                responses = {
-                   @ApiResponse(responseCode = "200", description = "File written successfully"),
-                   @ApiResponse(responseCode = "401", description = "Unauthorized",
+                   @ApiResponse(responseCode = "200", description = "File written successfully. The `Last-Modified` header in the response contains the new timestamp of the file."),
+                   @ApiResponse(responseCode = "401", description = "Unauthorized. The `Authorization` header is missing, invalid, or expired.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "404", description = "File not found",
+                   @ApiResponse(responseCode = "404", description = "The specified path's parent folder does not exist.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "412", description = "Precondition Failed",
+                   @ApiResponse(responseCode = "412", description = "Precondition Failed. The file has been modified on the server since the date specified in the `If-Unmodified-Since` header.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "500", description = "Internal server error",
+                   @ApiResponse(responseCode = "500", description = "A server-side error occurred while writing the file.",
                                 content = @Content(mediaType = "application/json",
                                                    schema = @Schema(implementation = ErrorResponse.class)))
                })
     public ResponseEntity<?> write(
-            @Parameter(description = "Path and content of the file to write.", required = true,
+            @Parameter(description = "The path and content of the file to write.", required = true,
                        schema = @Schema(implementation = WriteRequest.class))
             @Valid @RequestBody WriteRequest writeRequest,
-            @Parameter(description = "Date to check for modifications.", example = "2025-08-20T10:00:00Z")
+            @Parameter(description = "Standard HTTP `If-Unmodified-Since` header. If provided, the server only processes the request if the file has not been modified since this date.", example = "Wed, 21 Oct 2015 07:28:00 GMT")
             @RequestHeader(name = "If-Unmodified-Since", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Date ifUnmodifiedSince,
-            @RequestHeader(name = "Authorization", required = false) String authorizationHeader) {
+            @Parameter(description = "The Bearer token obtained from the `/login` endpoint.", required = true)
+            @RequestHeader(name = "Authorization") String authorizationHeader) {
         LOG.info(() -> "Attempting to write file: " + writeRequest.path() + " with If-Unmodified-Since: " + ifUnmodifiedSince);
         try {
             final KeyEntry keyEntry = getValidKey(authorizationHeader);
@@ -231,12 +239,12 @@ public class StorageController {
                 .withHttpClientBuilder(httpClientBuilder)
                 .withValidationKey(keyEntry.validationKey());
 
-            zefiroClient.upload(writeRequest.path(), writeRequest.content(), ifUnmodifiedSince);
+            ZefiroUploadResponse zefiroResponse = zefiroClient.upload(writeRequest.path(), writeRequest.content(), ifUnmodifiedSince);
             LOG.info(() -> "File written successfully: " + writeRequest.path());
-            if (ifUnmodifiedSince != null) {
-                return ResponseEntity.ok().lastModified(ifUnmodifiedSince.toInstant().atZone(ZoneId.of("UTC"))).build();
-            }
-            return ResponseEntity.ok().build();
+
+            ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+            response.lastModified(zefiroResponse.lastModified().toInstant());
+            return response.build();
         } catch (ZefiroFileNotFoundException x) {
             LOG.warning(() -> "File not found: " + writeRequest.path());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
