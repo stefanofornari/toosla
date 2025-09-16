@@ -166,19 +166,18 @@ public class ZefiroClient {
             long fileId = 0;
 
             // Check If-Unmodified-Since precondition
-            if (ifUnmodifiedSince != null) {
-                Optional<JsonNode> existingFileMetadata = getFileMetadata(httpClient, folderId, fileName);
-                if (existingFileMetadata.isPresent()) {
-                    long creationDate = existingFileMetadata.get().at("/modificationdate").asLong();
-                    if (creationDate > ifUnmodifiedSince.getTime()) {
-                        throw new ZefiroModificationException(new Date(creationDate));
-                    } else {
-                        // Precondition met, get existing file id to update it
-                        fileId = existingFileMetadata.get().at("/id").asLong();
-                    }
-                }
-            } else {
+            if (ifUnmodifiedSince == null) {
                 ifUnmodifiedSince = new Date();
+            }
+            Optional<JsonNode> existingFileMetadata = getFileMetadata(httpClient, folderId, fileName);
+            if (existingFileMetadata.isPresent()) {
+                long creationDate = existingFileMetadata.get().at("/modificationdate").asLong();
+                if (creationDate > ifUnmodifiedSince.getTime()) {
+                    throw new ZefiroModificationException(new Date(creationDate));
+                } else {
+                    // Precondition met, get existing file id to update it
+                    fileId = existingFileMetadata.get().at("/id").asLong();
+                }
             }
 
             final Multipart body = buildMultipartBody(

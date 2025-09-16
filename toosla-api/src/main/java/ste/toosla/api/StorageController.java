@@ -139,24 +139,26 @@ public class StorageController {
         return error[0];
     }
 
-        @PostMapping("/api/storage/read")
-    @Operation(summary = "Read a file from storage",
-               description = "Reads the content of a file from the remote storage. This endpoint supports conditional requests using the `If-Modified-Since` header to conserve bandwidth.",
-               responses = {
-                   @ApiResponse(responseCode = "200", description = "File content returned in the response body.",
-                                content = @Content(mediaType = "application/json",
-                                                   schema = @Schema(type = "string"))),
-                   @ApiResponse(responseCode = "304", description = "The file has not been modified since the date specified in the `If-Modified-Since` header."),
-                   @ApiResponse(responseCode = "401", description = "Unauthorized. The `Authorization` header is missing, invalid, or expired.",
-                                content = @Content(mediaType = "application/json",
-                                                   schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "404", description = "The specified file or path does not exist.",
-                                content = @Content(mediaType = "application/json",
-                                                   schema = @Schema(implementation = ErrorResponse.class))),
-                   @ApiResponse(responseCode = "500", description = "A server-side error occurred while reading the file.",
-                                content = @Content(mediaType = "application/json",
-                                                   schema = @Schema(implementation = ErrorResponse.class)))
-               })
+    @PostMapping("/api/storage/read")
+    @Operation(
+        summary = "Read a file from storage",
+        description = "Reads the content of a file from the remote storage. This endpoint supports conditional requests using the `If-Modified-Since` header to conserve bandwidth.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "File content returned in the response body.",
+                         content = @Content(mediaType = "application/json",
+                                            schema = @Schema(type = "string"))),
+            @ApiResponse(responseCode = "304", description = "The file has not been modified since the date specified in the `If-Modified-Since` header."),
+            @ApiResponse(responseCode = "401", description = "Unauthorized. The `Authorization` header is missing, invalid, or expired.",
+                         content = @Content(mediaType = "application/json",
+                                            schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "The specified file or path does not exist.",
+                         content = @Content(mediaType = "application/json",
+                                            schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "A server-side error occurred while reading the file.",
+                         content = @Content(mediaType = "application/json",
+                                            schema = @Schema(implementation = ErrorResponse.class)))
+        }
+    )
     public ResponseEntity<?> read(
             @Parameter(description = "The path of the file to read.", required = true,
                        schema = @Schema(implementation = ReadRequest.class))
@@ -166,7 +168,7 @@ public class StorageController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Date ifModifiedSince,
             @Parameter(description = "The Bearer token obtained from the `/login` endpoint.", required = true)
-            @RequestHeader(name = "Authorization") String authorizationHeader) {
+            @RequestHeader(name = "Authorization", required = false) String authorizationHeader) {
         LOG.info(() -> "Attempting to read file: " + readRequest.path() + " if modified since " + ifModifiedSince);
 
         try {
@@ -202,7 +204,7 @@ public class StorageController {
         }
     }
 
-        @PostMapping("/api/storage/write")
+    @PostMapping("/api/storage/write")
     @Operation(summary = "Write a file to storage",
                description = "Writes or overwrites a file in the remote storage. This endpoint supports optimistic locking via the `If-Unmodified-Since` header to prevent lost updates.",
                responses = {

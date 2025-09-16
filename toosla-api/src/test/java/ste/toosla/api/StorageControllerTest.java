@@ -11,7 +11,7 @@
  * included on all copies, modifications and derivatives of this
  * work.
  *
- * STEFANO FORNARI MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY
+ * STEFANO FORNARI MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THETABILITY
  * OF THE SOFTWARE, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
  * PURPOSE, OR NON-INFRINGEMENT. STEFANO FORNARI SHALL NOT BE LIABLE FOR ANY
@@ -31,9 +31,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.http.HttpClient;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.logging.Logger;
+import java.time.temporal.ChronoUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import static org.assertj.core.api.BDDAssertions.then;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -403,23 +405,31 @@ public class StorageControllerTest {
         // Given
         final String accessKey = keyManager.newKey(TEST_ACCOUNT, TEST_SECRET, TEST_VALIDATION_KEY);
 
+        final DateTimeFormatter ISO_FORMAT = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"));
+        final DateTimeFormatter HTTP_FORMAT = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss zzz").withZone(ZoneId.of("GMT"));
+
+        // Simulate a successful upload response from Zefiro, returning a lastmodified field in the response
         setUpFileStubs(httpClientBuilder).withStub(
             new ANDMatcher(
                 new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
                 new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
-            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
+            // Add a lastmodified timestamp value to be returned by Zefiro (used by the controller)
+            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\","
+                + "\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\","
+                + "\"responsetime\":1755272687861,\"type\":\"file\"}"
+            )
         );
 
         // When & Then
         mockMvc.perform(post("/api/storage/write")
-            .header("If-Unmodified-Since", DateTimeFormatter.ISO_INSTANT.format(FIXED_MODIFICATION_DATE.toInstant()))
+            .header("If-Unmodified-Since", ISO_FORMAT.format(FIXED_MODIFICATION_DATE.toInstant()))
             .header("Authorization", "Bearer " + accessKey)
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"path\": \"/Toosla/new_file.json\", \"content\": \"{\\\"key\\\":\\\"value\\\"}\"}"))
             .andExpect(status().isOk())
             .andExpect(
-                header().string("Last-Modified", "Tue, 19 Aug 2025 00:00:00 GMT")
+                header().string("Last-Modified", HTTP_FORMAT.format(FIXED_MODIFICATION_DATE.toInstant().truncatedTo(ChronoUnit.SECONDS)))
             );
     }
 
@@ -612,8 +622,10 @@ public class StorageControllerTest {
 
     @Test
     public void read_with_invalid_access_key_returns_unauthorized() throws Exception {
-        // Given                                                                        │
-        // No Authorization header provided                                             │
+        // Given
+        // No Authorization header provided
+
+        setUpFileStubs(httpClientBuilder);
 
         // When & Then
         mockMvc.perform(post("/api/storage/read")

@@ -191,7 +191,8 @@ public class ZefiroClientTest {
     public void upload_without_if_modified_since() throws Exception {
         // Given
         ZefiroClient zefiro = newZefiroClient();
-        setUpTreeStubs(httpClientBuilder).withStub("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY,
+        setUpFileStubs(httpClientBuilder).withStub(
+            "https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY,
             new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"12345\",\"status\":\"V\",\"etag\":\"J7XxRng02rtVeS3X9Wj58Q==\",\"responsetime\":1755272687861,\"type\":\"file\"}")
         );
 
@@ -199,10 +200,10 @@ public class ZefiroClientTest {
         String content = "{\"key\":\"value\"}";
 
         // When
-        String uploadedFileId = zefiro.upload(path, content);
+        ZefiroUploadResponse response = zefiro.upload(path, content);
 
         // Then
-        then(uploadedFileId).isEqualTo("12345");
+        then(response.id()).isEqualTo("12345");
     }
 
     @Test
@@ -249,10 +250,12 @@ public class ZefiroClientTest {
         );
 
         // When
-        String uploadedFileId = zefiro.upload(path, content, FIXED_LATER_DATE);
+        final Date NOW = new Date();
+        ZefiroUploadResponse response = zefiro.upload(path, content, FIXED_LATER_DATE);
 
         // Then
-        then(uploadedFileId).isEqualTo("11111");
+        then(response.id()).isEqualTo("11111");
+        then(response.lastModified()).isAfter(NOW);
     }
 
     @Test
@@ -272,10 +275,40 @@ public class ZefiroClientTest {
         );
 
         // When
-        String fileId = zefiro.upload(path, content, FIXED_LATER_DATE);
+        ZefiroUploadResponse response = zefiro.upload(path, content, FIXED_LATER_DATE);
 
         // Then
-        then(fileId).isEqualTo("67890");
+        then(response.id()).isEqualTo("67890");
+    }
+
+    @Test
+    public void upload_existing_file_sends_id() throws Exception {
+        ZefiroClient zefiro = zefiro = newZefiroClient();
+
+        final String path = "/Toosla/toosla.json";
+        final String contentPattern = "{\"key\":\"value\"}",
+                     idPattern = "\"id\":11111";
+
+        setUpFileStubs(httpClientBuilder).withStub(// this does not contain /Toosla/toosla.json
+            new ANDMatcher(
+                new URIMatcher("https://upload.zefiro.me/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
+                new BodyMatcher(Pattern.compile("--------zfrclient\\d+.*" + Pattern.quote(idPattern) + ".*--------zfrclient\\d+.*", Pattern.DOTALL)),
+                new BodyMatcher(Pattern.compile("--------zfrclient\\d+.*" + Pattern.quote(contentPattern) + ".*", Pattern.DOTALL))
+            ),
+            new StubHttpResponse<String>().text("{\"success\":\"Media uploaded successfully\",\"id\":\"67890\"}")
+        );
+
+        //
+        // Upload without if-unmodified-since
+        //
+        ZefiroUploadResponse response = zefiro.upload(path, contentPattern);
+        then(response.id()).isEqualTo("67890");
+
+        //
+        // Upload with if-unmodified-since
+        //
+        response = zefiro.upload(path, contentPattern, FIXED_LATER_DATE);
+        then(response.id()).isEqualTo("67890");
     }
 
     @Test
@@ -288,7 +321,7 @@ public class ZefiroClientTest {
             .withUploadUrl(testUploadUrl);
 
         // Use existing stubs for helpers, which point to the default API URL
-        setUpTreeStubs(httpClientBuilder);
+        setUpFileStubs(httpClientBuilder);
         // Add a new stub for our custom upload URL
         httpClientBuilder.withStub(
             new URIMatcher(testUploadUrl + "/sapi/upload?action=save&acceptasynchronous=false&validationkey=" + TEST_VALIDATION_KEY),
@@ -296,10 +329,10 @@ public class ZefiroClientTest {
         );
 
         // When
-        String uploadedFileId = zefiro.upload("/Toosla/new_file.json", "{\"key\":\"value\"}");
+        ZefiroUploadResponse response = zefiro.upload("/Toosla/new_file.json", "{\"key\":\"value\"}");
 
         // Then
-        then(uploadedFileId).isEqualTo("a_different_id");
+        then(response.id()).isEqualTo("a_different_id");
     }
 
     //
@@ -436,7 +469,7 @@ public class ZefiroClientTest {
                 new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
-                "{\"data\":{\"media\":[{\"id\":\"11111\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_11111\",\"creationdate\":1755561600000}]}}"
+                "{\"data\":{\"media\":[{\"id\":\"11111\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_11111\",\"modificationdate\":1755561600000}]}}"
             )
         );
 
@@ -489,7 +522,7 @@ public class ZefiroClientTest {
                 new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
-                "{\"data\":{\"media\":[{\"id\":\"11111\",\"name\":\"toosla.json\",\"creationdate\":1755561600000}, {\"id\":\"22222\",\"name\":\"another_toosla.json\",\"creationdate\":1755561600000}]}}"
+                "{\"data\":{\"media\":[{\"id\":\"11111\",\"name\":\"toosla.json\",\"modificationdate\":1755561600000}, {\"id\":\"22222\",\"name\":\"another_toosla.json\",\"modificationdate\":1755561600000}]}}"
             )
         ).withStub(
             //
@@ -497,11 +530,11 @@ public class ZefiroClientTest {
             //
             new ANDMatcher(
                 new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + TEST_VALIDATION_KEY),
-                new BodyMatcher("{\"data\":{\"ids\":[11111],\"fields\":[\"url\",\"creationdate\"]}}"),
+                new BodyMatcher("{\"data\":{\"ids\":[11111],\"fields\":[\"url\",\"modificationdate\"]}}"),
                 new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
-                "{\"data\":{\"media\":[{\"id\":\"11111\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_11111\",\"creationdate\":1755561600000}]}}"
+                "{\"data\":{\"media\":[{\"id\":\"11111\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_11111\",\"modificationdate\":1755561600000}]}}"
             )
         ).withStub(
             //
@@ -509,11 +542,11 @@ public class ZefiroClientTest {
             //
             new ANDMatcher(
                 new URIMatcher("https://zefiro.me/sapi/media?action=get&origin=omh,dropbox&validationkey=" + TEST_VALIDATION_KEY),
-                new BodyMatcher("{\"data\":{\"ids\":[22222],\"fields\":[\"url\",\"creationdate\"]}}"),
+                new BodyMatcher("{\"data\":{\"ids\":[22222],\"fields\":[\"url\",\"modificationdate\"]}}"),
                 new HeaderMatcher("Authorization", "Basic " + TEST_BASIC_CREDENTIALS)
             ),
             new StubHttpResponse<String>().text(
-                "{\"data\":{\"media\":[{\"id\":\"22222\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_22222\",\"creationdate\":1755561600000}]}}"
+                "{\"data\":{\"media\":[{\"id\":\"22222\",\"url\":\"https://zefiro.me/sapi/download/file?action=get&k=key_for_22222\",\"modificationdate\":1755561600000}]}}"
             )
         ).withStub(
             //
