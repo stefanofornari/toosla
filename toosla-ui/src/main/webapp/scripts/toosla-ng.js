@@ -19,9 +19,6 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 
-//import { PasswordManager } from "./PasswordManager.js";
-//import { ZefiroService } from "./ZefiroService.js";
-
 const tooslaModule = angular.module('Toosla', []);
 
 tooslaModule.factory('passwd', [() => {
