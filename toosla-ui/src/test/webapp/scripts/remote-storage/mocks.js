@@ -139,9 +139,10 @@ async function write(request) {
 
         // Success: Update the data and the timestamp.
         const newLastModified = new Date();
-        item.content.lastModified = newLastModified.toISOString();
+        const content = JSON.parse(item.content);
+        content.lastModified = newLastModified.toISOString();
 
-        localStorage.setItem(fullPath, JSON.stringify(item.content));
+        localStorage.setItem(fullPath, JSON.stringify(content));
 
         dumpLocalStorage();
         return new MockServiceWorker.HttpResponse("OK", {
