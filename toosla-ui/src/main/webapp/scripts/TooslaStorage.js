@@ -196,7 +196,7 @@ export class TooslaStorage {
         try {
             const headers = {
                 "Content-Type": "application/json",
-                "authorization":  `Bearer ${this.validationKey}`
+                "Authorization":  `Bearer ${this.accessKey}`
             };
 
             if (this.lastModified) {
@@ -208,7 +208,7 @@ export class TooslaStorage {
                 headers: headers,
                 body: JSON.stringify({
                     "path": "/Toosla/data.json",
-                    "content": this.tooslaLocalStorage()
+                    "content": JSON.stringify(this.tooslaLocalStorage())
                 })
             });
             if (!response.ok) {
