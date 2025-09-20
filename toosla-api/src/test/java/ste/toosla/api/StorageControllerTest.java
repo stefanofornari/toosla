@@ -769,4 +769,23 @@ public class StorageControllerTest {
                 .containsSEVERE("Error reading file: /Toosla/toosla.json");
     }
 
+    @Test
+    public void read_successful_returns_last_modified_header() throws Exception {
+        final String accessKey = keyManager.newKey(TEST_ACCOUNT, TEST_SECRET, TEST_VALIDATION_KEY);
+
+        setUpFileStubs(httpClientBuilder);
+
+        final DateTimeFormatter HTTP_FORMAT = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss zzz").withZone(ZoneId.of("GMT"));
+
+        // When & Then
+        mockMvc.perform(post("/api/storage/read")
+                .header("Authorization", "Bearer " + accessKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"path\":\"/Toosla/toosla.json\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(content().string("{\"content\":\"this is toosla\"}"))
+                .andExpect(header().string("Last-Modified", HTTP_FORMAT.format(FIXED_MODIFICATION_DATE.toInstant().truncatedTo(ChronoUnit.SECONDS))));
+    }
+
 }

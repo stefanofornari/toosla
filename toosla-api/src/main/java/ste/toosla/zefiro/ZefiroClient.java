@@ -226,8 +226,10 @@ public class ZefiroClient {
      * @throws ZefiroFileNotFoundException if the specified file or any subdirectory in the path is not found
      */
     public String download(String path) throws ZefiroException {
-        return download(path, null).get();
+        return download(path, null).get().content();
     }
+
+    public record DownloadResult(String content, Date lastModified) {}
 
     /**
      * Downloads a file from the Zefiro service, with an option to check if the file has been modified since a given date.
@@ -239,7 +241,7 @@ public class ZefiroClient {
      * @throws ZefiroException if a general error occurs during the download process
      * @throws ZefiroFileNotFoundException if the specified file or any subdirectory in the path is not found
      */
-    public Optional<String> download(String path, Date ifModifiedSince) throws ZefiroException {
+    public Optional<DownloadResult> download(String path, Date ifModifiedSince) throws ZefiroException {
         path = "/OneMediaHub" + path;
         try {
             final HttpClient httpClient = httpClientBuilder.build();
@@ -277,9 +279,9 @@ public class ZefiroClient {
 
             JsonNode downloadUrlJson = jsonMapper.readTree(downloadUrlResponse.body());
 
+            long modificationDate = downloadUrlJson.at("/data/media/0/modificationdate").asLong();
             if (ifModifiedSince != null) {
-                long creationDate = downloadUrlJson.at("/data/media/0/modificationdate").asLong();
-                if (creationDate <= ifModifiedSince.getTime()) {
+                if (modificationDate <= ifModifiedSince.getTime()) {
                     return Optional.empty();
                 }
             }
@@ -299,7 +301,7 @@ public class ZefiroClient {
                 throw new ZefiroException("Failed to download file content: " + fileContentResponse.statusCode());
             }
 
-            return Optional.of(fileContentResponse.body());
+            return Optional.of(new DownloadResult(fileContentResponse.body(), new Date(modificationDate)));
         } catch (JsonParseException x) {
             throw new ZefiroException("Invalid JSON response from Zefiro", x);
         } catch (IOException | InterruptedException x) {

@@ -21,10 +21,9 @@
 package ste.toosla.api;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,7 +33,7 @@ import org.springframework.stereotype.Component;
 public class KeyManager {
     private static final Logger LOGGER = Logger.getLogger(KeyManager.class.getName());
 
-    final protected Set<KeyMetadata> entries = ConcurrentHashMap.newKeySet();
+    final protected List<KeyMetadata> entries = Collections.synchronizedList(new ArrayList());
     final protected long expirationTime;
 
     // Internal class to hold entry metadata

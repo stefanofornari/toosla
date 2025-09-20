@@ -179,13 +179,14 @@ public class StorageController {
                     .withHttpClientBuilder(httpClientBuilder)
                     .withValidationKey(keyEntry.validationKey());
 
-            Optional<String> content = zefiroClient.download(readRequest.path(), ifModifiedSince);
-            if (content.isPresent()) {
+            Optional<ZefiroClient.DownloadResult> result = zefiroClient.download(readRequest.path(), ifModifiedSince);
+            if (result.isPresent()) {
                 LOG.info(() -> "File read successfully: " + readRequest.path());
                 return ResponseEntity
                         .ok()
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(content.get());
+                        .lastModified(result.get().lastModified().toInstant())
+                        .body(result.get().content());
             } else {
                 LOG.info(() -> "File not modified: " + readRequest.path());
                 return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
@@ -277,7 +278,7 @@ public class StorageController {
             !authorizationHeader.startsWith("Bearer ") ||
             (keyEntry = keyManager.get(authorizationHeader.substring(7))) == null
             ) {
-                throw new ZefiroLoginException("Missing or invalid Authorization header");
+            throw new ZefiroLoginException("Missing or invalid Authorization header");
         }
 
         return keyEntry;

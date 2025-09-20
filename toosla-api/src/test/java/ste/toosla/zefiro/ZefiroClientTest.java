@@ -435,10 +435,12 @@ public class ZefiroClientTest {
         setUpFileStubs(httpClientBuilder);
 
         // When
-        Optional<String> content = zefiro.download("/Toosla/toosla.json", FIXED_EARLIER_DATE);
+        Optional<ZefiroClient.DownloadResult> result = zefiro.download("/Toosla/toosla.json", FIXED_EARLIER_DATE);
 
         // Then
-        then(content).isPresent().contains("{\"content\":\"this is toosla\"}");
+        then(result).isPresent();
+        then(result.get().content()).isEqualTo("{\"content\":\"this is toosla\"}");
+        then(result.get().lastModified()).isEqualTo(FIXED_MODIFICATION_DATE);
     }
 
     @Test
@@ -451,10 +453,10 @@ public class ZefiroClientTest {
         setUpFileStubs(httpClientBuilder);
 
         // When
-        Optional<String> content = zefiro.download("/Toosla/toosla.json", FIXED_LATER_DATE);
+        Optional<ZefiroClient.DownloadResult> result = zefiro.download("/Toosla/toosla.json", FIXED_LATER_DATE);
 
         // Then
-        then(content).isNotPresent();
+        then(result).isNotPresent();
     }
 
     @Test

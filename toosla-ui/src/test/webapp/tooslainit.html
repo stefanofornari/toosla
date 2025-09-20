@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Unit Test for Toosla Storage</title>
+    </head>
+
+    <body>
+        <script src="msw/2.10.2/msw.js"></script>
+        <script type="module">
+            import { TooslaStorage } from "./scripts/TooslaStorage.js"; window.TooslaStorage = TooslaStorage;
+            import { PasswordManager } from "./scripts/PasswordManager.js"; window.PasswordManager = PasswordManager;
+            import { mocks } from "./scripts/remote-storage/mocks.js";
+
+            await MockServiceWorker.setupWorker(...mocks).start({
+                onUnhandledRequest: 'warn', // Log unhandled requests
+                serviceWorker: {
+                    url: '/mockServiceWorker.js' // This file needs to be served from your root
+                }
+            }).catch((error) => {
+                console.error(error.message);
+                console.error(error.stack);
+            });
+
+            window.toosla =  {
+                ready: true
+            };
+        </script>
+    </body>
+</html>
