@@ -57,11 +57,6 @@ export class DemoController1 {
 
     $postLink() {
         console.log('Demo1 component linked!');
-        try {
-            this.setup();
-        } catch (e) {
-            console.error(e);
-        }
     }
 
     $onDestroy() {

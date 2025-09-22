@@ -72,7 +72,7 @@ public class MainPageTest extends TooslaTestBase {
         //
         initialMedia("{'prefers-color-scheme': 'light'}");
         loadPage();
-/*        then(classes("html")).doesNotContain("dark-side");
+        then(classes("html")).doesNotContain("dark-side");
 
         initialMedia("{'prefers-color-scheme': 'dark'}");
         loadPage();
@@ -85,7 +85,6 @@ public class MainPageTest extends TooslaTestBase {
         then(classes("html")).doesNotContain("dark-side");
         darkMode(true);
         then(classes("html")).contains("dark-side");
-*/
     }
 }
 

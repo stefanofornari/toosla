@@ -73,7 +73,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         then(exec("tooslaStorage.accessKey")).isEqualTo("access-key-username123:password1");
 
         then(exec("tooslaStorage.linkStatus")).isEqualTo("linked");
-        then((String)exec("__XTEST__.log")).contains("I TooslaStorage connected with account username123\n");
+        then((String)exec("__XTEST__.log")).contains("I [TooslaStorage] connected with account username123\n");
 
         exec("""
             passwd.saveSecret(PIN, {
@@ -86,7 +86,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         then(exec("tooslaStorage.validationKey")).isEqualTo("validation-key-username456:password2");
         then(exec("tooslaStorage.accessKey")).isEqualTo("access-key-username456:password2");
         then(exec("tooslaStorage.linkStatus")).isEqualTo("linked");
-        then((String)exec("__XTEST__.log")).contains("I TooslaStorage connected with account username456\n");
+        then((String)exec("__XTEST__.log")).contains("I [TooslaStorage] connected with account username456\n");
 
         //
         // special characters
@@ -117,7 +117,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         then(exec("tooslaStorage.validationKey")).isNull();
         then(exec("tooslaStorage.accessKey")).isNull();
         then(exec("tooslaStorage.linkStatus")).isEqualTo("unlinked");
-        then((String)exec("__XTEST__.log")).contains("TooslaStorage unable to link the remote storage: the provided credentials are not authorized\n");
+        then((String)exec("__XTEST__.log")).contains("[TooslaStorage] unable to link the remote storage: the provided credentials are not authorized\n");
     }
 
     @Test
@@ -291,15 +291,17 @@ public class TooslaStorageTest extends TooslaTestBase {
         // clear local only
         //
         exec("tooslaStorage.clear(true);");
+        waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
 
         then(exec("localStorage.getItem('toosla.localKey1')")).isNull();
-        then(exec("localStorage.getItem('/OneMediaHub/Toosla/data.json');")).isNotNull();
+        final JSONObject o = new JSONObject((String)exec("localStorage.getItem('/OneMediaHub/Toosla/data.json');"));
+        then(o.has("toosla.remoteKey1")).isTrue();
 
         //
         // clear both local and remote storage
         //
         exec("localStorage.setItem('toosla.localKey1', 'localValue1')");
-        exec("tooslaStorage.clear(false);");
+        exec("tooslaStorage.clear();");
 
         then(exec("localStorage.getItem('toosla.localKey1')")).isNull();
         waitUntilTrue("tooslaStorage.changeStatus === 'clean'");
@@ -459,6 +461,50 @@ public class TooslaStorageTest extends TooslaTestBase {
             """, VALUE));
             then(exec("e")).isEqualTo("Error: key can not be null or empty");
         }
+    }
+
+    @Test
+    public void storage_events() throws Exception {
+        exec("window.tooslaStorage = new TooslaStorage({pin: '123'});");
+        exec("window.tooslaStorage.saveLocalStorage = async () => {};");
+
+        exec(
+            "window.receivedEvents = [];" +
+            "window.addEventListener('storage', (e) => {" +
+            "  window.receivedEvents.push(e.detail);" +
+            "});"
+        );
+
+        exec("window.tooslaStorage.setItem('a', '1');");
+        exec("window.tooslaStorage.setItem('a', '2');");
+        exec("window.tooslaStorage.removeItem('a');");
+        exec("window.tooslaStorage.clear();");
+
+        then((Integer) exec("window.receivedEvents.length")).isEqualTo(4);
+
+        // check the first event
+        then(exec("window.receivedEvents[0].type")).isEqualTo("setItem");
+        then(exec("window.receivedEvents[0].key")).isEqualTo("a");
+        then(exec("window.receivedEvents[0].oldValue")).isNull();
+        then(exec("window.receivedEvents[0].newValue")).isEqualTo("1");
+
+        // check the second event
+        then(exec("window.receivedEvents[1].type")).isEqualTo("setItem");
+        then(exec("window.receivedEvents[1].key")).isEqualTo("a");
+        then(exec("window.receivedEvents[1].oldValue")).isEqualTo("1");
+        then(exec("window.receivedEvents[1].newValue")).isEqualTo("2");
+
+        // check the third event
+        then(exec("window.receivedEvents[2].type")).isEqualTo("removeItem");
+        then(exec("window.receivedEvents[2].key")).isEqualTo("a");
+        then(exec("window.receivedEvents[2].oldValue")).isEqualTo("2");
+        then(exec("window.receivedEvents[2].newValue")).isNull();
+
+        // check the fourth event
+        then(exec("window.receivedEvents[3].type")).isEqualTo("clear");
+        then(exec("window.receivedEvents[3].key")).isNull();
+        then(exec("window.receivedEvents[3].oldValue")).isNull();
+        then(exec("window.receivedEvents[3].newValue")).isNull();
     }
 
     // --------------------------------------------------------- private methods

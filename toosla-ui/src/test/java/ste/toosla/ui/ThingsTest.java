@@ -25,7 +25,6 @@ import java.time.format.DateTimeFormatter;
 import static org.assertj.core.api.BDDAssertions.then;
 import org.json.JSONArray;
 import org.junit.Test;
-import ste.xtest.concurrent.WaitFor;
 import ste.xtest.json.api.JSONAssertions;
 
 /**
@@ -126,6 +125,9 @@ public class ThingsTest extends TooslaTestBase {
 
     @Test
     public void done_saves_changes() {
+        //
+        // note that we do not care about the remote storage here...
+        //
         exec("""
             $('#things tr')[1].children[1].click();  // edit mode
 
@@ -137,29 +139,16 @@ public class ThingsTest extends TooslaTestBase {
             $('#things .btn-done').click();  // done
         """);
 
-        //
-        // let's complete all async tasks
-        //
-        new WaitFor(() -> {
-            try {
-                final JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
-                then(things.getJSONObject(0).getJSONArray("things")).isEmpty();
-
-                JSONAssertions.then(things.getJSONObject(0))
-                .containsEntry("status", "done")
-                .containsEntry("text", "hello\nworld")
-                .containsEntry("when", "2020-01-01");
-                return true;
-            } catch (AssertionError e) {
-                System.out.println(e);
-                return false;
-            }
-        });
+        JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
+        JSONAssertions.then(things.getJSONObject(0))
+            .containsEntry("status", "done")
+            .containsEntry("text", "hello\nworld")
+            .containsEntry("when", "2020-01-01");
 
         //
         // items stored in local storage
         //
-        final JSONArray things = new JSONArray((String)exec("toosla.storage.getItem('toosla.things.things');"));
+        things = new JSONArray((String)exec("toosla.storage.getItem('toosla.things.things');"));
         JSONAssertions.then(things).hasSize(1);
         then(things.getJSONObject(0).getJSONArray("things")).isEmpty();
         JSONAssertions.then(things.getJSONObject(0))
@@ -334,6 +323,31 @@ public class ThingsTest extends TooslaTestBase {
                 .isEqualTo("first line");
         then(exec("$('#things tr')[2].children[1].innerText.trim()"))
                 .isEqualTo("very long description in th…");
+    }
+
+    @Test
+    public void reloads_things_on_storage_change() throws Exception {
+        loadPage(); // start with empty storage
+
+        final String THINGS = """
+        [
+            {
+                "status": "active",
+                "text": "new thing",
+                "when": "2022-02-02",
+                "things": []
+            }
+        ]
+        """;
+
+        exec("toosla.storage.setItem('toosla.things.things', `" + THINGS + "`);");
+
+        waitUntilTrue("angular.element($('#things')).controller('things').things[0].text === 'new thing'");
+
+        JSONArray things = new JSONArray((String)exec("angular.element($('#things')).controller('things').things"));
+        JSONAssertions.then(things).hasSize(1);
+        JSONAssertions.then(things.getJSONObject(0))
+            .containsEntry("text", "new thing");
     }
 
     @Test

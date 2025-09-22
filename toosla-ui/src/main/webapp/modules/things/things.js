@@ -52,6 +52,14 @@ export class ThingsController {
                 things: []
             }];
         }
+
+        this.storageListener = (e) => {
+            if (e.detail.key === 'toosla.things.things') {
+                this.loadThings();
+            }
+        };
+
+        window.addEventListener('storage', this.storageListener);
     }
 
     $postLink() {
@@ -59,7 +67,8 @@ export class ThingsController {
     }
 
     $onDestroy() {
-        console.debug(`${ThingsController.NAME} component linked!`);
+        console.debug(`${ThingsController.NAME} component destroyed!`);
+        window.removeEventListener('storage', this.storageListener);
     }
 
     //

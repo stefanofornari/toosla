@@ -56,8 +56,6 @@ export class Toosla {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             self.darkMode(event.matches);
         });
-
-        this.storage.login();
     };
 
     darkMode(dark) {
@@ -164,6 +162,16 @@ class TooslaController {
                     $('#insert-pin-dialog')[0].showModal();
                 }
             }
+
+            toosla.storage.login().then(() => {
+                if (toosla.storage.linkStatus !== "linked") {
+                    console.info("[toosla] TooslaStorage not linked, unable to sync local data");
+                } else {
+                    toosla.storage.sync().then(() => {
+                        console.info("[toosla] local data in sync");
+                    });
+                }
+            });
         });
     }
 

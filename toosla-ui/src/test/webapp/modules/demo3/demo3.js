@@ -19,7 +19,7 @@
  * THIS SOFTWARE OR ITS DERIVATIVES.
  */
 export class DemoController3 {
-    constructor($scope) {
+   constructor($scope) {
         this.$scope = $scope;
     }
 

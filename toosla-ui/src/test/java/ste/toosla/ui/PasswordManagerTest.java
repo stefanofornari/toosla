@@ -281,13 +281,11 @@ public class PasswordManagerTest extends TooslaTestBase {
      */
     @Test
     public void labels_returns_all_labels_without_prefix() throws Exception {
-        exec("passwd.saveSecret('1234', { label:'one', data:'hello' })");
+        async("passwd.saveSecret('1234', { label:'one', data:'hello' })");
 
-        new WaitFor(500, () -> (Boolean) exec("passwd.includes('one')"));
         then(String.valueOf(exec("passwd.labels()"))).isEqualTo("[\"one\"]");
 
-        exec("passwd.saveSecret('1234', { label:'one.two', data:'world' })");
-        new WaitFor(500, () -> (Boolean) exec("passwd.includes('one.two')"));
+        async("passwd.saveSecret('1234', { label:'one.two', data:'world' })");
         then(String.valueOf(exec("passwd.labels().sort()"))).isEqualTo("[\"one\",\"one.two\"]");
 
         then(String.valueOf(exec("passwd.labels('one')"))).isEqualTo("[\"two\"]");

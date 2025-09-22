@@ -23,124 +23,50 @@ package ste.toosla.ui;
 import static org.assertj.core.api.BDDAssertions.then;
 import org.junit.Before;
 import org.junit.Test;
-import ste.xtest.concurrent.WaitFor;
 
 /**
  *
  */
-public class ZefiroTest extends TooslaTestBase {
+public class TooslaInitTest extends TooslaTestBase {
+
+    public TooslaInitTest() {
+        page = "tooslainit.html";
+    }
 
     @Override
     @Before
     public void before() throws Exception {
         super.before();
-        exec("sessionStorage.setItem('passwd.pin', '1234');");
+        exec("""
+            const PIN = "123abc";
+            sessionStorage.setItem('passwd.pin', PIN)
+            const passwd = new PasswordManager();
+            passwd.pin = PIN;
+            passwd.saveSecret(PIN, {
+                label: "storage.credentials",
+                data: "username123:password1"
+            });
+        """);
     }
 
     @Test
-    public void zefiro_displayed_on_page() {
-        then(visible("#zefiro")).isTrue();
-        then((boolean)exec("toosla.getModuleController('zefiro') !== undefined;")).isTrue();
+    public void setup_and_sync_at_load() {
         //
-        // starting in view mode
+        // given some items in the local storage
         //
-        then(visible("#zefiro")).isTrue();
-    }
+        exec("localStorage.setItem('toosla.localKey1', 'localValue1')");
+        exec("localStorage.setItem('another.key', 'anotherValue')");
 
-    @Test
-    public void available_toosla_buttons() {
-        then(visible("#zefiro .application-action-bar button.button.toosla-btn-fullscreen")).isTrue();
-        then(visible("#zefiro .application-action-bar button.button.toosla-btn-settings")).isTrue();
-    }
+        //
+        // and a remote storage with some content
+        //
+        exec("localStorage.setItem('/OneMediaHub/Toosla/data.json', '{\"toosla.remoteKey1\":\"remote value 1\"}');");
 
-    @Test
-    public void settings_button_opens_settings_div() {
-        then(visible("#zefiro .settings")).isFalse();
-        click("#zefiro button.toosla-btn-settings");
-        then(visible("#toosla-settings .settings")).isTrue();
-        then(visible("#toosla-settings .settings input[name=\"username\"]")).isTrue();
-        then(visible("#toosla-settings .settings input[name=\"password\"]")).isTrue();
-    }
-
-    @Test
-    public void load_existing_credentials_on_opening_settings() throws Exception {
-        exec("""
-            const passwd = angular.element($('#zefiro')).controller('zefiro').passwd;
-            passwd.saveSecret('1234', {label: 'zefiro.user1', data: 'password1'});
-        """);
-        Thread.sleep(250);
-        click("#zefiro button.toosla-btn-settings");
-        Thread.sleep(250);
-        then(val("#toosla-settings .settings input[name=username]")).isEqualTo("user1");
-        then(val("#toosla-settings .settings input[name=password]")).isEqualTo("password1");
-
-        exec("passwd.removeSecret('zefiro.user1')");
-        click("#zefiro button.toosla-btn-settings");
-        Thread.sleep(250);
-        then(val("#toosla-settings .settings input[name=username]")).isEmpty();
-        then(val("#toosla-settings .settings input[name=password]")).isEmpty();
-    }
-
-    @Test
-    public void save_credentials_on_settings_done() throws Exception {
-        click("#zefiro button.toosla-btn-settings");
-        exec("""
-            const ctrl = angular.element($('#zefiro')).controller('zefiro');
-            angular.element($("#toosla-settings .settings input[name='username']")).val("user1").triggerHandler('input');
-            angular.element($("#toosla-settings .settings input[name='password']")).val("password1").triggerHandler('input');
-        """); // set credentials
-        click("#toosla-settings button.btn-done"); // click done button
-        then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
-        exec("""
-           var pwd = null;
-           ctrl.passwd.loadSecret('1234', 'zefiro.user1')
-           .then((p) => { pwd = p })
-           .catch((e) => console.error(e.message, e.stack));
-        """);
-        new WaitFor(250, () -> {
-            return "password1".equals(exec("pwd"));
-        });
-    }
-
-    @Test
-    public void save_credentials_replaces_existing() throws Exception {
-        exec("""
-            const ctrl = angular.element($('#zefiro')).controller('zefiro');
-            ctrl.passwd.saveSecret('1234', { label: 'zefiro.user0', data: 'something' });
-        """);
-        click("#zefiro button.toosla-btn-settings");
-        exec("""
-            angular.element($("#toosla-settings .settings input[name='username']")).val("user1").triggerHandler('input');
-            angular.element($("#toosla-settings .settings input[name='password']")).val("password1").triggerHandler('input');
-        """); // set credentials
-        click("#toosla-settings button.btn-done"); // click done button
-        then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
-        then(exec("ctrl.passwd.labels()")).isEqualTo("[\"zefiro.user1\",\"storage.credentials\"]");
-        then(async("ctrl.passwd.loadSecret('1234', 'storage.credentials')")).isEqualTo("[\"user1:password1\"]");
-    }
-
-    @Test
-    public void set_status_configured_on_settings_done() throws Exception {
-        exec("const ctrl = angular.element($('#zefiro')).controller('zefiro');");
-        click("#zefiro button.toosla-btn-settings");
-        exec("""
-            angular.element($("#toosla-settings .settings input[name='username']")).val("user1").triggerHandler('input');
-            angular.element($("#toosla-settings .settings input[name='password']")).val("password1").triggerHandler('input');
-        """);
-        click("#toosla-settings button.btn-done"); // click done button
-        then(visible("#zefiro .card-content .configure-message")).isFalse();
-    }
-
-    @Test
-    public void load_credentials_at_page_load() throws Exception {
-        then(visible("#zefiro .card-content .configure-message")).isTrue();
-        exec("""
-            const ctrl = angular.element($('#zefiro')).controller('zefiro');
-            ctrl.passwd.saveSecret('1234', { label: 'zefiro.user0', data: 'something' });
-        """);
         loadPage();
-        then(visible("#zefiro .card-content .configure-message")).isFalse();
+
+        exec("console.log(JSON.stringify(toosla.storage.tooslaLocalStorage()))");
+        waitUntilTrue(250, "toosla.storage.getItem('remoteKey1') === 'remote value 1'");
+        then((String)async("toosla.storage.changeStatus")).isEqualTo("[\"clean\"]");
+        then((String)exec("toosla.storage.getItem('remoteKey1');")).isEqualTo("remote value 1");
     }
-
-
 }

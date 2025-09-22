@@ -45,8 +45,8 @@ export class TooslaStorage {
     account = null;
     validationKey = null;
     accessKey = null;
-    linkStatus = "unlinked";
-    changeStatus = "clean";
+    linkStatus = LINK_STATUS_UNLINKED;
+    changeStatus = CHANGE_STATUS_CLEAN;
     lastModified = null;
 
     constructor(passwd) {
@@ -58,7 +58,7 @@ export class TooslaStorage {
         if (this.#passwd.pin) {
             return await this.#passwd.loadSecret(this.#passwd.pin, "storage.credentials");
         }
-        throw "PIN not set, unable to retrieve valid credentials";
+        throw new Error("PIN not set, unable to retrieve valid credentials");
     }
 
     async login() {
@@ -83,7 +83,7 @@ export class TooslaStorage {
                 this.validationKey = body.validationKey;
                 this.accessKey = body.accessKey;
                 this.linkStatus = LINK_STATUS_LINKED;
-                console.info(`TooslaStorage connected with account ${this.account}`);
+                console.info("[TooslaStorage]", `connected with account ${this.account}`);
             } else {
                 //
                 // If the user is not authorized to access the remote storage
@@ -96,7 +96,7 @@ export class TooslaStorage {
                     this.validationKey = null;
                     this.accessKey = null;
                     this.linkStatus = LINK_STATUS_UNLINKED;
-                    console.info(`TooslaStorage unable to link the remote storage: the provided credentials are not authorized`);
+                    console.info("[TooslaStorage]", "unable to link the remote storage: the provided credentials are not authorized");
                 }
                 return;
             }
@@ -122,11 +122,12 @@ export class TooslaStorage {
      * @returns {undefined}
      */
     async sync() {
-        console.debug("start sync", this.lastModified);
+        console.info("start sync", this.lastModified);
 
         try {
             const headers = {
-                "Authorization": `Bearer ${this.validationKey}`
+                "Authorization": `Bearer ${this.accessKey}`,
+                "Content-Type": "application/json"
             };
 
             if (this.lastModified) {
@@ -141,43 +142,33 @@ export class TooslaStorage {
                 })
             });
 
-            console.debug("downloading done", response.statusText);
+            console.info("downloading done", response.status);
             if (response.ok) {
                 //
                 // Clear existing toosla. prefixed items before loading remote data
                 //
-                this.clear();
+                this.clear(true);
 
                 //
                 // Store the values from remote in localStore
                 //
                 const remoteData = await response.json();
-                console.debug("remoteData", JSON.stringify(remoteData));
                 for (const key in remoteData) {
                     //
                     // All keys should be toosla keys (starting with toosla.)
                     //
-                    console.debug("remote key", key);
-                    localStorage.setItem(key, remoteData[key]);
+                    this.setItem(key.substring(7), remoteData[key], true);
                 }
                 this.lastModified = Date.parse(response.headers.get("Last-Modified"));
                 this.changeStatus = CHANGE_STATUS_CLEAN;
             } else {
                 if (response.status === 304) {
                     // Not Modified
-                    console.debug("local storage up-to-date");
-                    this.changeStatus = CHANGE_STATUS_CLEAN;
-                } else if (response.status === 404) {
-                    //
-                    // 3. Create the Toosla folder and store the storage file if not
-                    //    existing already
-                    //
-                    console.debug("not found, save it");
-                    response = await this.saveLocalStorage();
+                    console.info("local storage up-to-date");
                     this.changeStatus = CHANGE_STATUS_CLEAN;
                 }
             }
-            console.debug("end sync", this.lastModified);
+            console.info("end sync", this.lastModified);
         } catch (error) {
             console.info("[TooslaStorage]", "unable to read the remote storage due to a network or unexpected error, working offline");
             console.error(error);
@@ -233,42 +224,54 @@ export class TooslaStorage {
      * @param {object} value the items value
      *
      */
-    setItem(key, value) {
-        console.debug("setItem", key, value);
+    setItem(key, value, localOnly = false) {
         Utils.checkValue("key", key);
-        localStorage.setItem(TOOSLA_KEY_PREFIX + key, value);
+        const oldValue = this.getItem(key);
+        this.#setItem(key, value);
         this.lastUpdated = new Date();
         this.changeStatus = CHANGE_STATUS_DIRTY;
-        this.saveLocalStorage()
-        .then(() => {
+        this.#dispatchEvent('setItem', key, oldValue, value);
+        if (!localOnly) {
+            this.saveLocalStorage()
+            .then(() => {
+                this.changeStatus = CHANGE_STATUS_CLEAN;
+            })
+            .catch((error) => {
+                console.error(error);
+                throw error;
+            });
+        } else {
             this.changeStatus = CHANGE_STATUS_CLEAN;
-        })
-        .catch((error) => {
-            //
-            // TODO: handle errors
-            //
-            console.error(error);
-            throw error;
-        });
+        }
     }
 
     getItem(key) {
         Utils.checkValue("key", key);
-        return localStorage.getItem(TOOSLA_KEY_PREFIX + key);
+        try {
+            return localStorage.getItem(TOOSLA_KEY_PREFIX + key);
+        } catch (e) {
+            console.error(e.stack);
+        }
     }
 
-    removeItem(key) {
+    removeItem(key, localOnly = false) {
         Utils.checkValue("key", key);
-        localStorage.removeItem(TOOSLA_KEY_PREFIX + key);
+        const oldValue = this.getItem(key);
+        this.#removeItem(key);
         this.changeStatus = CHANGE_STATUS_DIRTY;
-        this.saveLocalStorage()
-        .then(() => {
+        this.#dispatchEvent('removeItem', key, oldValue, null);
+        if (!localOnly) {
+            this.saveLocalStorage()
+            .then(() => {
+                this.changeStatus = CHANGE_STATUS_CLEAN;
+            })
+            .catch((error) => {
+                console.error(error);
+                throw error;
+            });
+        } else {
             this.changeStatus = CHANGE_STATUS_CLEAN;
-        })
-        .catch((error) => {
-            console.error(error);
-            throw error;
-        });
+        }
     }
 
     key(n) {
@@ -294,13 +297,9 @@ export class TooslaStorage {
     }
 
     clear(localOnly = false) {
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-            const key = localStorage.key(i);
-            if (key.startsWith(TOOSLA_KEY_PREFIX)) {
-                localStorage.removeItem(key);
-            }
-        }
+        this.#clear();
         this.changeStatus = CHANGE_STATUS_DIRTY;
+        this.#dispatchEvent('clear', null, null, null);
         if (!localOnly) {
             this.saveLocalStorage()
             .then(() => {
@@ -310,6 +309,8 @@ export class TooslaStorage {
                 console.error(error);
                 throw error;
             });
+        } else {
+            this.changeStatus = CHANGE_STATUS_CLEAN;
         }
     }
 
@@ -324,5 +325,34 @@ export class TooslaStorage {
         }
 
         return ret;
+    }
+
+    #clear() {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key.startsWith(TOOSLA_KEY_PREFIX)) {
+                localStorage.removeItem(key);
+            }
+        }
+    }
+
+    #removeItem(key) {
+        localStorage.removeItem(TOOSLA_KEY_PREFIX + key);
+    }
+
+    #setItem(key, value) {
+        localStorage.setItem(TOOSLA_KEY_PREFIX + key, value);
+    }
+
+    #dispatchEvent(type, key, oldValue, newValue) {
+        const event = new CustomEvent('storage', {
+            detail: {
+                type: type,
+                key: key,
+                oldValue: oldValue,
+                newValue: newValue
+            }
+        });
+        window.dispatchEvent(event);
     }
 }

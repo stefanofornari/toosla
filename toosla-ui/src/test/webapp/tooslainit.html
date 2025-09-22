@@ -1,13 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="Toosla">
     <head>
-        <title>Unit Test for Toosla Storage</title>
+        <title>Welcome to toosla.me!</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <link rel="stylesheet" href="metroui/5.1.0/metro.css">
+        <link rel="stylesheet" href="metroui/5.1.0/icons.css">
+        <link rel="stylesheet" href="modules/toosla/toosla.css">
+        <!-- -->
     </head>
 
     <body>
+        <toosla></toosla>
+
+        <script src="metroui/5.1.0/metro.js"></script>
+        <script src="angularjs/1.8.2/angular.min.js"></script>
         <script src="msw/2.10.2/msw.js"></script>
+        <script src="scripts/toosla.js" type="module"></script>
         <script type="module">
-            import { TooslaStorage } from "./scripts/TooslaStorage.js"; window.TooslaStorage = TooslaStorage;
             import { PasswordManager } from "./scripts/PasswordManager.js"; window.PasswordManager = PasswordManager;
             import { mocks } from "./scripts/remote-storage/mocks.js";
 
@@ -20,10 +30,7 @@
                 console.error(error.message);
                 console.error(error.stack);
             });
-
-            window.toosla =  {
-                ready: true
-            };
         </script>
+        <script src="scripts/toosla-ng.js" type="module"></script>
     </body>
 </html>
