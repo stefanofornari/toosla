@@ -24,7 +24,6 @@ const tooslaModule = angular.module('Toosla', []);
 tooslaModule.factory('passwd', [() => {
     return toosla.passwordManager;
 }]);
-//tooslaModule.factory('zefiro', ZefiroService);
 
 for (const [name, controller] of toosla.modules()) {
     tooslaModule.component(name, {
