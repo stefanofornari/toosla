@@ -27,15 +27,30 @@ export class PasswordManager {
     static KEY_PIN = "passwd.pin";
     static KEY_SECRET_PREFIX = "passwd.secret";
 
+    #pinUpdateListeners = [];
+
     constructor() {
     }
 
+    addPinUpdateListener(listener) {
+        this.#pinUpdateListeners.push(listener);
+    }
+
+    removePinUpdateListener(listener) {
+        const index = this.#pinUpdateListeners.indexOf(listener);
+        if (index > -1) {
+            this.#pinUpdateListeners.splice(index, 1);
+        }
+    }
+
     get pin() {
+        console.log(JSON.stringify(sessionStorage, null, 2));
         return sessionStorage.getItem(PasswordManager.KEY_PIN);
     }
 
     set pin(value) {
         sessionStorage.setItem(PasswordManager.KEY_PIN, value);
+        this.#pinUpdateListeners.forEach(listener => listener(value));
     }
 
     includes(key) {
