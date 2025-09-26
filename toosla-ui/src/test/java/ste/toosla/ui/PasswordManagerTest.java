@@ -141,7 +141,7 @@ public class PasswordManagerTest extends TooslaTestBase {
 
     @Test
     public void load_secret() throws Exception {
-        async("""
+        await("""
             Promise.all([
                 passwd.saveSecret('1234', { label:'label1', data: 'hello world' }),
                 passwd.saveSecret('5678', { label:'label2', data: 'hello universe' })
@@ -166,8 +166,6 @@ public class PasswordManagerTest extends TooslaTestBase {
         """);
 
         new WaitFor(500, () -> {
-            System.out.println(exec("secrets.length"));
-            System.out.println(exec("errors.length"));
             return (Boolean) exec("(secrets.length === 2) && (errors.length === 2)");
         });
 
@@ -180,12 +178,12 @@ public class PasswordManagerTest extends TooslaTestBase {
     @Test
     public void load_secret_sanity_check() {
         for (final String VALUE : INVALID) {
-            async(String.format("passwd.loadSecret(%s, 'label')", VALUE));
+            await(String.format("passwd.loadSecret(%s, 'label')", VALUE));
             then(exec("__XTEST__.asyncRet")).isEqualTo("pin can not be null or empty");
         }
 
         for (final String VALUE : INVALID) {
-            async(String.format("passwd.loadSecret('1234', %s)", VALUE));
+            await(String.format("passwd.loadSecret('1234', %s)", VALUE));
             then(exec("__XTEST__.asyncRet")).isEqualTo("label can not be null or empty");
         }
     }
@@ -203,7 +201,7 @@ public class PasswordManagerTest extends TooslaTestBase {
 
         then(exec("""
             passwd.removeSecret("label1");
-            secret = toosla.storage.getItem("passwd.secret.label1");
+            secret = localStorage.getItem("passwd.secret.label1");
         """)).isNull();
 
         //
@@ -281,11 +279,11 @@ public class PasswordManagerTest extends TooslaTestBase {
      */
     @Test
     public void labels_returns_all_labels_without_prefix() throws Exception {
-        async("passwd.saveSecret('1234', { label:'one', data:'hello' })");
+        await("passwd.saveSecret('1234', { label:'one', data:'hello' })");
 
         then(String.valueOf(exec("passwd.labels()"))).isEqualTo("[\"one\"]");
 
-        async("passwd.saveSecret('1234', { label:'one.two', data:'world' })");
+        await("passwd.saveSecret('1234', { label:'one.two', data:'world' })");
         then(String.valueOf(exec("passwd.labels().sort()"))).isEqualTo("[\"one\",\"one.two\"]");
 
         then(String.valueOf(exec("passwd.labels('one')"))).isEqualTo("[\"two\"]");
@@ -293,5 +291,75 @@ public class PasswordManagerTest extends TooslaTestBase {
         then(String.valueOf(exec("passwd.labels('').sort()"))).isEqualTo("[\"one\",\"one.two\"]");
         then(String.valueOf(exec("passwd.labels('  ').sort()"))).isEqualTo("[\"one\",\"one.two\"]");
         then(String.valueOf(exec("passwd.labels(null).sort()"))).isEqualTo("[\"one\",\"one.two\"]");
+    }
+
+    @Test
+    public void pin_update_notifies_listeners() {
+        exec("""
+            window.updatedPin = null;
+            const listener = (pin) => {
+                window.updatedPin = pin;
+            };
+            passwd.addPinUpdateListener(listener);
+            passwd.pin = "1234";
+        """);
+
+        then(exec("window.updatedPin")).isEqualTo("1234");
+    }
+
+    @Test
+    public void remove_pin_update_listener() {
+        exec("""
+            window.updatedPin = null;
+            const listener = (pin) => {
+                window.updatedPin = pin;
+            };
+            passwd.addPinUpdateListener(listener);
+            passwd.removePinUpdateListener(listener);
+            passwd.pin = "1234";
+        """);
+
+        then(exec("window.updatedPin")).isNull();
+    }
+
+    @Test
+    public void pin_update_notifies_multiple_listeners() {
+        exec("""
+            window.updatedPin1 = null;
+            window.updatedPin2 = null;
+            const listener1 = (pin) => {
+                window.updatedPin1 = pin;
+            };
+            const listener2 = (pin) => {
+                window.updatedPin2 = pin;
+            };
+            passwd.addPinUpdateListener(listener1);
+            passwd.addPinUpdateListener(listener2);
+            passwd.pin = "1234";
+        """);
+
+        then(exec("window.updatedPin1")).isEqualTo("1234");
+        then(exec("window.updatedPin2")).isEqualTo("1234");
+    }
+
+    @Test
+    public void remove_one_of_multiple_listeners() {
+        exec("""
+            window.updatedPin1 = null;
+            window.updatedPin2 = null;
+            const listener1 = (pin) => {
+                window.updatedPin1 = pin;
+            };
+            const listener2 = (pin) => {
+                window.updatedPin2 = pin;
+            };
+            passwd.addPinUpdateListener(listener1);
+            passwd.addPinUpdateListener(listener2);
+            passwd.removePinUpdateListener(listener1);
+            passwd.pin = "1234";
+        """);
+
+        then(exec("window.updatedPin1")).isNull();
+        then(exec("window.updatedPin2")).isEqualTo("1234");
     }
 }
