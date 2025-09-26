@@ -44,7 +44,7 @@ public class TooslaTestBase extends BugFreeWeb {
         loadPage();
     }
 
-    public Object async(long timeout, final String script) {
+    public Object await(long timeout, final String script) {
         exec(String.format("""
             __XTEST__.asyncDone = false;
             __XTEST__.asyncRet = null;
@@ -65,8 +65,8 @@ public class TooslaTestBase extends BugFreeWeb {
         return exec("__XTEST__.asyncRet");
     }
 
-    public Object async(final String script) {
-        return this.async(DEFAULT_TIMEOUT, script);
+    public Object await(final String script) {
+        return this.await(DEFAULT_TIMEOUT, script);
     }
 
     public void waitUntilTrue(final String condition) {
