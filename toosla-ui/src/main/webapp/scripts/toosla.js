@@ -31,6 +31,10 @@ export class Toosla {
     #storage = new TooslaStorage(this.#passwd);
     #modules = new Map();
 
+    constructor() {
+        this.#passwd.addPinUpdateListener(this.storageLoginAndSync.bind(this));
+    }
+
     get storage() {
         return this.#storage;
     }
@@ -85,6 +89,18 @@ export class Toosla {
 
     getModuleController(module) {
         return this.#modules.get(module);
+    }
+
+    storageLoginAndSync() {
+        this.#storage.login().then(() => {
+            if (this.#storage.linkStatus !== "linked") {
+                console.info("[toosla] TooslaStorage not linked, unable to sync local data");
+            } else {
+                this.#storage.sync().then(() => {
+                    console.info("[toosla] local data in sync");
+                });
+            }
+        });
     }
 };
 
@@ -161,17 +177,12 @@ class TooslaController {
                 } else {
                     $('#insert-pin-dialog')[0].showModal();
                 }
+            } else {
+                //
+                // if PIN is set we can attempt to login the storage
+                //
+                toosla.storageLoginAndSync();
             }
-
-            toosla.storage.login().then(() => {
-                if (toosla.storage.linkStatus !== "linked") {
-                    console.info("[toosla] TooslaStorage not linked, unable to sync local data");
-                } else {
-                    toosla.storage.sync().then(() => {
-                        console.info("[toosla] local data in sync");
-                    });
-                }
-            });
         });
     }
 
@@ -239,11 +250,9 @@ class TooslaController {
 
     async confirmPIN(event) {
         const confirm = (event.target.className.indexOf("btn-confirm") >= 0);
-        const pin = (confirm)
-                  ? Metro.getPlugin('#insert-pin-dialog input', 'keypad').val()
-                  : "";
 
-        if (pin !== "") {
+        if (confirm) {
+            const pin = Metro.getPlugin('#insert-pin-dialog input', 'keypad').val();
             this.passwd.loadSecret(pin, "pin").then((savedPin) => {
                 if (pin === savedPin) {
                     // OK!
