@@ -21,7 +21,6 @@
 package ste.toosla.ui;
 
 import static org.assertj.core.api.BDDAssertions.then;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -33,10 +32,11 @@ public class TooslaInitTest extends TooslaTestBase {
         page = "tooslainit.html";
     }
 
-    @Override
-    @Before
-    public void before() throws Exception {
-        super.before();
+    @Test
+    public void setup_and_sync_at_load_when_pin_already_in_session_and_correct() {
+        //
+        // Given PIN 123abc
+        //
         exec("""
             const PIN = "123abc";
             sessionStorage.setItem('passwd.pin', PIN)
@@ -47,10 +47,7 @@ public class TooslaInitTest extends TooslaTestBase {
                 data: "username123:password1"
             });
         """);
-    }
 
-    @Test
-    public void setup_and_sync_at_load() {
         //
         // given some items in the local storage
         //
@@ -64,9 +61,40 @@ public class TooslaInitTest extends TooslaTestBase {
 
         loadPage();
 
-        exec("console.log(JSON.stringify(toosla.storage.tooslaLocalStorage()))");
         waitUntilTrue(250, "toosla.storage.getItem('remoteKey1') === 'remote value 1'");
-        then((String)async("toosla.storage.changeStatus")).isEqualTo("[\"clean\"]");
+        then((String)await("toosla.storage.changeStatus")).isEqualTo("[\"clean\"]");
         then((String)exec("toosla.storage.getItem('remoteKey1');")).isEqualTo("remote value 1");
     }
+
+    @Test
+    public void setup_and_sync_at_load_when_pin_not_in_session_and_correct() {
+        //
+        // given remote data
+        //
+        exec("localStorage.setItem('/OneMediaHub/Toosla/data.json', '{\"toosla.remoteKey1\":\"remote value 1\"}');");
+
+        await("""
+            new PasswordManager().saveSecret("123", {
+                label: "pin",
+                data: "123"
+            })
+        """);
+        await("""
+            new PasswordManager().saveSecret("123", {
+                label: "storage.credentials",
+                data: "username123:password1"
+            })
+        """);
+
+        loadPage();
+
+        then(visible("#insert-pin-dialog"));
+
+        exec("Metro.getPlugin('#insert-pin-dialog input', 'keypad').val('123')");
+        click("#insert-pin-dialog .btn-confirm");
+
+        waitUntilTrue(250, "localStorage.getItem('toosla.remoteKey1') === 'remote value 1'");
+        then((String)await("toosla.storage.changeStatus")).isEqualTo("[\"clean\"]");
+    }
+
 }
