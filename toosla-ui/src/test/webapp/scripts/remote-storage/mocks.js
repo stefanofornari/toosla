@@ -83,8 +83,6 @@ async function read(request) {
             });
         }
 
-        console.debug("storedItem", storedItem);
-
         // The stored item is a JSON string containing the content and the server's timestamp
         const storedData = JSON.parse(storedItem);
         const serverLastModified = storedData.lastModified ? Date.parse(storedData.lastModified) : null;
