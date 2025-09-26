@@ -116,7 +116,7 @@ public class ZefiroTest extends TooslaTestBase {
         click("#toosla-settings button.btn-done"); // click done button
         then((Boolean)exec("Metro.charms.isOpen(\"#toosla-settings\");")).isFalse();
         then(exec("ctrl.passwd.labels()")).isEqualTo("[\"zefiro.user1\",\"storage.credentials\"]");
-        then(async("ctrl.passwd.loadSecret('1234', 'storage.credentials')")).isEqualTo("[\"user1:password1\"]");
+        then(await("ctrl.passwd.loadSecret('1234', 'storage.credentials')")).isEqualTo("[\"user1:password1\"]");
     }
 
     @Test
