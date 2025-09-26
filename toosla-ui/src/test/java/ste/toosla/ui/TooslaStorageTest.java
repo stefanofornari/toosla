@@ -67,7 +67,7 @@ public class TooslaStorageTest extends TooslaTestBase {
             });
             const tooslaStorage = new TooslaStorage(passwd);
         """);
-        async("tooslaStorage.login()");
+        await("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username123");
         then(exec("tooslaStorage.validationKey")).isEqualTo("validation-key-username123:password1");
         then(exec("tooslaStorage.accessKey")).isEqualTo("access-key-username123:password1");
@@ -81,7 +81,7 @@ public class TooslaStorageTest extends TooslaTestBase {
                 data: "username456:password2"
             });
         """);
-        async("tooslaStorage.login()");
+        await("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username456");
         then(exec("tooslaStorage.validationKey")).isEqualTo("validation-key-username456:password2");
         then(exec("tooslaStorage.accessKey")).isEqualTo("access-key-username456:password2");
@@ -97,7 +97,7 @@ public class TooslaStorageTest extends TooslaTestBase {
                 data: 'username%&=?!:@=%56ò&?-\\\"\\''
             });
         """);
-        async("tooslaStorage.login()");
+        await("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isEqualTo("username%&=?!");
         then(exec("tooslaStorage.validationKey")).isEqualTo("validation-key-username%&=?!:@=%56ò&?-\"\'");
         then(exec("tooslaStorage.accessKey")).isEqualTo("access-key-username%&=?!:@=%56ò&?-\"\'");
@@ -112,7 +112,7 @@ public class TooslaStorageTest extends TooslaTestBase {
                 data: "fail-401:nopass"
             });
         """);
-        async("tooslaStorage.login()");
+        await("tooslaStorage.login()");
         then(exec("tooslaStorage.account")).isNull();
         then(exec("tooslaStorage.validationKey")).isNull();
         then(exec("tooslaStorage.accessKey")).isNull();
@@ -223,7 +223,6 @@ public class TooslaStorageTest extends TooslaTestBase {
                     keys.push(key.substring(7));
                 }
             }
-            console.debug("keys", keys);
         """);
 
         //
@@ -325,7 +324,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         //
         // Syncing
         //
-        login(); async("tooslaStorage.sync()");
+        login(); await("tooslaStorage.sync()");
         then(exec("tooslaStorage.changeStatus")).isEqualTo("clean");
 
         //
@@ -360,7 +359,7 @@ public class TooslaStorageTest extends TooslaTestBase {
         //
         login();
         exec("tooslaStorage.lastModified = new Date('2025-08-01T14:30:00Z')");
-        async("tooslaStorage.sync()");
+        await("tooslaStorage.sync()");
         then(exec("tooslaStorage.changeStatus")).isEqualTo("clean");
 
         //
@@ -520,6 +519,6 @@ public class TooslaStorageTest extends TooslaTestBase {
             });
             const tooslaStorage = new TooslaStorage(passwd);
         """);
-        async("tooslaStorage.login()");
+        await("tooslaStorage.login()");
     }
 }
