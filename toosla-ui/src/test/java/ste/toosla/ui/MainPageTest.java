@@ -31,7 +31,7 @@ public class MainPageTest extends TooslaTestBase {
     public void version_displayed_in_main_page() throws Exception {
         loadPage();
         then(visible("#toosla")).isTrue();
-        then(text("#toosla #version")).isEqualTo("@{project.version}");
+        then(text("#toosla #version")).isEqualTo("@project.parent.version@,@project.version@,@maven.build.timestamp@");
     }
 
     @Test

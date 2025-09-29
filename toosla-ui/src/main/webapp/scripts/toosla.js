@@ -21,10 +21,10 @@
 
 import { PasswordManager } from "./PasswordManager.js";
 import { TooslaStorage } from "./TooslaStorage.js";
+import { Version } from "./Version.js";
 
 export class Toosla {
-    version = "@{project.version}";
-    build = "@{buildTimestamp}";
+    version = "Toosla v" + Version.fullVersion;
     ready = false;
 
     #passwd  = new PasswordManager();
@@ -49,7 +49,7 @@ export class Toosla {
         $("#version").text(this.version);
         $("#screen").text(window.innerWidth + "x" + window.innerHeight);
         console.info(
-            `%c Toosla %cv${this.version} %c${this.build}`,
+            `%c Toosla %cv${this.version}`,
             "color: white; font-weight: bold; background: blue",
             "color: white; background: darkgreen",
             "color: white; background: darkgreen|color: white; background: #0080fe;"

@@ -4,6 +4,7 @@
     <id>dist</id>
     <formats>
         <format>dir</format>
+        <format>war</format>
     </formats>
 
     <includeBaseDirectory>false</includeBaseDirectory>
@@ -14,7 +15,7 @@
             <directory>src/main/webapp</directory>
             <filtered>true</filtered>
             <includes>
-                <include>script/toosla.js</include>
+                <include>scripts/Version.js</include>
             </includes>
         </fileSet>
         <fileSet>
@@ -25,7 +26,7 @@
                 <include>**/*</include>
             </includes>
             <excludes>
-                <exclude>script/toosla.js</exclude>
+                <exclude>scripts/Version.js</exclude>
                 <exclude>META-INF</exclude>
                 <exclude>WEB-INF</exclude>
             </excludes>
