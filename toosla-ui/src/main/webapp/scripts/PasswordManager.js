@@ -44,7 +44,6 @@ export class PasswordManager {
     }
 
     get pin() {
-        console.log(JSON.stringify(sessionStorage, null, 2));
         return sessionStorage.getItem(PasswordManager.KEY_PIN);
     }
 
