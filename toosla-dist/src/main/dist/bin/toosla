@@ -55,5 +55,10 @@ load_config $scriptname
 #
 LOADER_PATH=${CLASSPATH//:/,}
 
+#
+# Add the static content root directory under the classpath
+#
+export CLASSPATH=$CLASSPATH:$home/webroot
+
 exec 2>&1
 exec $uidcmd "$javacmd" $JAVA_OPTS -cp "$CLASSPATH" org.springframework.boot.loader.launch.WarLauncher ste.toosla.api.TooslaApiApplication "$@"

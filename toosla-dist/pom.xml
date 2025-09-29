@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ste.toosla</groupId>
+        <artifactId>toosla</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>toosla-dist</artifactId>
+    <packaging>pom</packaging>
+
+    <properties>
+        <toosla-api.version>0.0.0-SNAPSHOT</toosla-api.version>
+        <toosla-ui.version>0.0.0-SNAPSHOT</toosla-ui.version>
+        <toosla-logging.version>1.0.0</toosla-logging.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>ste.toosla</groupId>
+            <artifactId>toosla-api</artifactId>
+            <version>${toosla-api.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>ste.toosla</groupId>
+            <artifactId>toosla-api</artifactId>
+            <version>${toosla-api.version}</version>
+            <classifier>log</classifier>
+        </dependency>
+        <dependency>
+            <groupId>ste.toosla</groupId>
+            <artifactId>toosla-ui</artifactId>
+            <version>${toosla-ui.version}</version>
+            <type>war</type>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/dist.xml</descriptor>
+                    </descriptors>
+                    <appendAssemblyId>true</appendAssemblyId>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

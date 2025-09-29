@@ -37,19 +37,22 @@
                 <exclude>*.formatted</exclude>
             </excludes>
         </fileSet>
-        <fileSet>
-            <outputDirectory>lib</outputDirectory>
-            <directory>target</directory>
-            <includes>
-                <include>${project.artifactId}-${project.version}.war</include>
-            </includes>
-        </fileSet>
-        <fileSet>
-            <outputDirectory>lib</outputDirectory>
-            <directory>target/classes</directory>
-            <includes>
-                <include>ste/toosla/util/logging/**/*.class</include>
-            </includes>
-        </fileSet>
     </fileSets>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>lib</outputDirectory>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <excludes>
+                <exclude>ste.toosla:toosla-ui</exclude>
+            </excludes>
+        </dependencySet>
+        <dependencySet>
+            <outputDirectory>webroot</outputDirectory>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <includes>
+                <include>ste.toosla:toosla-ui</include>
+            </includes>
+            <unpack>true</unpack>
+        </dependencySet>
+    </dependencySets>
 </assembly>
