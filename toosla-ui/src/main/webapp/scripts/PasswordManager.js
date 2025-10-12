@@ -30,6 +30,9 @@ export class PasswordManager {
     #pinUpdateListeners = [];
 
     constructor() {
+        if (!crypto.subtle) {
+            throw new Error("crypto.subtle is not available. The Web Crypto API requires a secure context (HTTPS or localhost).");
+        }
     }
 
     addPinUpdateListener(listener) {
